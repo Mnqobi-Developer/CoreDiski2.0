@@ -2,7 +2,6 @@ import './style.css';
 import { popularQueries } from './data';
 import { newsletterRepository, shirtRepository } from './repository';
 import type { Shirt } from './types';
-import type { CreateShirtInput, Shirt } from './types';
 
 const app = document.querySelector<HTMLDivElement>('#app');
 
@@ -21,7 +20,7 @@ app.innerHTML = `
         </div>
       </div>
       <nav class="nav-icons">
-        <span>⌂</span><span>⌕</span><span>♡</span><span>👤</span><span>🛒</span>
+        <a href="/" aria-label="Home">⌂</a><a href="/shop.html" aria-label="Shop">Shop</a><span>♡</span><span>👤</span><span>🛒</span>
       </nav>
     </header>
 
