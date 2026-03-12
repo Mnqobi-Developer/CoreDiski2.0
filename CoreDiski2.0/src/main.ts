@@ -1,60 +1,131 @@
-import './style.css'
-import typescriptLogo from './assets/typescript.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import { setupCounter } from './counter.ts'
+import './style.css';
+import { popularQueries } from './data';
+import { newsletterRepository, shirtRepository } from './repository';
+import type { Shirt } from './types';
 
-document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
-<section id="center">
-  <div class="hero">
-    <img src="${heroImg}" class="base" width="170" height="179">
-    <img src="${typescriptLogo}" class="framework" alt="TypeScript logo"/>
-    <img src=${viteLogo} class="vite" alt="Vite logo" />
+const app = document.querySelector<HTMLDivElement>('#app');
+
+if (!app) {
+  throw new Error('App container not found');
+}
+
+app.innerHTML = `
+  <div class="page">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-logo">CD</div>
+        <div>
+          <p class="brand-name">CORE DISKI</p>
+          <p class="brand-tag">Authentic Football Shirts</p>
+        </div>
+      </div>
+      <nav class="nav-icons">
+        <a href="/" aria-label="Home">⌂</a><a href="/shop.html" aria-label="Shop">Shop</a><span>♡</span><span>👤</span><span>🛒</span>
+      </nav>
+    </header>
+
+    <main class="content">
+      <section class="hero">
+        <h1>Authentic Football Shirts</h1>
+        <p>Discover rare, verified jerseys from every club and nation<br/>Heritage. Authenticity. Passion.</p>
+        <form id="search-form" class="search-row">
+          <input id="search-input" type="search" placeholder="Search teams, leagues, or players..." />
+          <button type="submit">Search</button>
+        </form>
+        <p class="popular">Popular: ${popularQueries
+          .map((query) => `<button class="popular-link" data-query="${query}">${query}</button>`)
+          .join(' ')}</p>
+      </section>
+
+      <section class="featured">
+        <h2>Featured</h2>
+        <p>Explore some of our most sought-after authentic football shirts.</p>
+        <div id="shirts-grid" class="shirts-grid"></div>
+      </section>
+
+      <section class="about">
+        <div>
+          <h3>About Us</h3>
+          <p>Welcome to Core Diski, the home for collectors of authentic, rare, and classic football shirts. Our passion is to bring you the most sought-after, verified jerseys from legendary clubs and national teams.</p>
+          <button type="button">Learn More</button>
+        </div>
+        <div class="about-image" aria-hidden="true">Historic Shirt Archive</div>
+      </section>
+
+      <section class="newsletter">
+        <h3>Stay in the Know</h3>
+        <p>Subscribe to our newsletter for the latest arrivals, special offers, and exclusive content.</p>
+        <form id="newsletter-form" class="newsletter-row">
+          <input id="newsletter-input" type="email" placeholder="Enter your email address" required />
+          <button type="submit">Subscribe</button>
+        </form>
+        <p id="newsletter-message" class="status"></p>
+      </section>
+    </main>
   </div>
-  <div>
-    <h1>Get started</h1>
-    <p>Edit <code>src/main.ts</code> and save to test <code>HMR</code></p>
-  </div>
-  <button id="counter" type="button" class="counter"></button>
-</section>
+`;
 
-<div class="ticks"></div>
+const shirtsGrid = document.querySelector<HTMLDivElement>('#shirts-grid');
+const searchForm = document.querySelector<HTMLFormElement>('#search-form');
+const searchInput = document.querySelector<HTMLInputElement>('#search-input');
+const newsletterForm = document.querySelector<HTMLFormElement>('#newsletter-form');
+const newsletterInput = document.querySelector<HTMLInputElement>('#newsletter-input');
+const newsletterMessage = document.querySelector<HTMLParagraphElement>('#newsletter-message');
 
-<section id="next-steps">
-  <div id="docs">
-    <svg class="icon" role="presentation" aria-hidden="true"><use href="/icons.svg#documentation-icon"></use></svg>
-    <h2>Documentation</h2>
-    <p>Your questions, answered</p>
-    <ul>
-      <li>
-        <a href="https://vite.dev/" target="_blank">
-          <img class="logo" src=${viteLogo} alt="" />
-          Explore Vite
-        </a>
-      </li>
-      <li>
-        <a href="https://www.typescriptlang.org" target="_blank">
-          <img class="button-icon" src="${typescriptLogo}" alt="">
-          Learn more
-        </a>
-      </li>
-    </ul>
-  </div>
-  <div id="social">
-    <svg class="icon" role="presentation" aria-hidden="true"><use href="/icons.svg#social-icon"></use></svg>
-    <h2>Connect with us</h2>
-    <p>Join the Vite community</p>
-    <ul>
-      <li><a href="https://github.com/vitejs/vite" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#github-icon"></use></svg>GitHub</a></li>
-      <li><a href="https://chat.vite.dev/" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#discord-icon"></use></svg>Discord</a></li>
-      <li><a href="https://x.com/vite_js" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#x-icon"></use></svg>X.com</a></li>
-      <li><a href="https://bsky.app/profile/vite.dev" target="_blank"><svg class="button-icon" role="presentation" aria-hidden="true"><use href="/icons.svg#bluesky-icon"></use></svg>Bluesky</a></li>
-    </ul>
-  </div>
-</section>
+const money = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+  maximumFractionDigits: 0,
+});
 
-<div class="ticks"></div>
-<section id="spacer"></section>
-`
+const shirtCard = (shirt: Shirt) => `
+  <article class="shirt-card">
+    <button class="like" type="button" aria-label="Save ${shirt.title}">♡</button>
+    <img src="${shirt.imageUrl}" alt="${shirt.title} ${shirt.season} ${shirt.variant}" loading="lazy" />
+    <h4>${shirt.title}</h4>
+    <p>${shirt.season} ${shirt.variant}</p>
+    <strong>${money.format(shirt.price)}</strong>
+  </article>
+`;
 
-setupCounter(document.querySelector<HTMLButtonElement>('#counter')!)
+const renderShirts = async (search = '') => {
+  if (!shirtsGrid) {
+    return;
+  }
+
+  const shirts = await shirtRepository.list(search);
+  shirtsGrid.innerHTML = shirts.length
+    ? shirts.map(shirtCard).join('')
+    : '<p class="status">No shirts found for that query.</p>';
+};
+
+searchForm?.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  await renderShirts(searchInput?.value ?? '');
+});
+
+document.querySelectorAll<HTMLButtonElement>('.popular-link').forEach((button) => {
+  button.addEventListener('click', async () => {
+    if (searchInput) {
+      searchInput.value = button.dataset.query ?? '';
+    }
+    await renderShirts(searchInput?.value ?? '');
+  });
+});
+
+newsletterForm?.addEventListener('submit', async (event) => {
+  event.preventDefault();
+
+  if (!newsletterInput?.value) {
+    return;
+  }
+
+  await newsletterRepository.subscribe(newsletterInput.value);
+  newsletterInput.value = '';
+
+  if (newsletterMessage) {
+    newsletterMessage.textContent = 'Thanks! You are now subscribed.';
+  }
+});
+
+void renderShirts();
