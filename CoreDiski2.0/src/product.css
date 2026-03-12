@@ -157,11 +157,17 @@ body {
   border-radius: 6px;
   border: 1px solid #cfc7b8;
   background: #fbfaf5;
+  cursor: pointer;
 }
 
-.sizes .active {
+ .sizes .active {
   background: #1f4e44;
   color: #fff;
+}
+
+.selection-status {
+  margin: 0 0 0.7rem;
+  font-weight: 600;
 }
 
 .primary,
@@ -182,6 +188,11 @@ body {
 .secondary {
   background: #fff;
   border: 1px solid #ccc4b7;
+}
+
+.primary,
+.secondary {
+  cursor: pointer;
 }
 
 .description {

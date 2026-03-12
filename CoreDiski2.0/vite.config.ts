@@ -9,6 +9,7 @@ export default defineConfig({
         shop: resolve(__dirname, 'shop.html'),
         product: resolve(__dirname, 'product.html'),
         cart: resolve(__dirname, 'cart.html'),
+        wishlist: resolve(__dirname, 'wishlist.html'),
       },
     },
   },
