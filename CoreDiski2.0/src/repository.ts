@@ -62,6 +62,17 @@ export const shirtRepository = {
     });
   },
 
+
+
+  async getById(id: string): Promise<Shirt | null> {
+    if (!id) {
+      return null;
+    }
+
+    const shirts = readShirts();
+    return shirts.find((shirt) => shirt.id === id) ?? null;
+  },
+
   async create(input: CreateShirtInput): Promise<Shirt> {
     const shirts = readShirts();
     const created: Shirt = {

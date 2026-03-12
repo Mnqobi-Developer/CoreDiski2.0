@@ -1,0 +1,266 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  color: #1f463d;
+  background: radial-gradient(circle at 1px 1px, #e9e4d6 1px, transparent 0) 0 0 / 28px 28px,
+    #f6f3ea;
+}
+
+.topbar {
+  background: #1f4e44;
+  color: #f3efe6;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.8rem 2rem;
+}
+
+.brand {
+  display: flex;
+  gap: 0.8rem;
+  align-items: center;
+}
+
+.brand-logo {
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 999px;
+  border: 2px solid #f3efe6;
+  display: grid;
+  place-items: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.brand-name,
+.brand-tag {
+  margin: 0;
+}
+
+.brand-tag {
+  font-size: 0.75rem;
+  opacity: 0.85;
+}
+
+.nav-icons {
+  display: flex;
+  gap: 0.8rem;
+}
+
+.nav-icons a {
+  color: #f3efe6;
+  text-decoration: none;
+}
+
+.nav-icons a[aria-current='page'] {
+  text-decoration: underline;
+}
+
+.content {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.crumbs {
+  margin: 0.4rem 0 1rem;
+}
+
+.crumbs a {
+  color: inherit;
+}
+
+.top-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.4rem;
+}
+
+.hero-image {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  border-radius: 14px;
+  border: 1px solid #ddd7ca;
+  background: #ece6d9;
+}
+
+.thumbs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.6rem;
+  margin-top: 0.6rem;
+}
+
+.thumbs img {
+  width: 100%;
+  height: 100px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid #ddd7ca;
+}
+
+.product-meta h1 {
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 3.3rem);
+  font-family: Georgia, 'Times New Roman', serif;
+}
+
+.product-meta h2 {
+  margin: 0.3rem 0 1rem;
+  font-size: clamp(1.5rem, 2vw, 2.1rem);
+  font-family: Georgia, 'Times New Roman', serif;
+}
+
+.product-meta ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  line-height: 1.8;
+  font-size: 1.3rem;
+}
+
+.price {
+  border-top: 1px solid #ddd7ca;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  font-size: 3rem;
+  font-weight: 700;
+}
+
+.shipping {
+  font-size: 1.5rem;
+  margin: 0 0 1rem;
+}
+
+.sizes {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.sizes button {
+  min-width: 56px;
+  padding: 0.6rem;
+  border-radius: 6px;
+  border: 1px solid #cfc7b8;
+  background: #fbfaf5;
+}
+
+.sizes .active {
+  background: #1f4e44;
+  color: #fff;
+}
+
+.primary,
+.secondary {
+  width: 100%;
+  padding: 0.9rem;
+  border-radius: 8px;
+  border: 0;
+  font-size: 1.3rem;
+  margin-bottom: 0.6rem;
+}
+
+.primary {
+  background: #1f4e44;
+  color: #fff;
+}
+
+.secondary {
+  background: #fff;
+  border: 1px solid #ccc4b7;
+}
+
+.description {
+  margin-top: 1.2rem;
+  padding-top: 1rem;
+  border-top: 1px solid #ddd7ca;
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 1rem;
+}
+
+.description h3,
+.related h3,
+.not-found h1 {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 2.4rem;
+  margin: 0;
+}
+
+.description p {
+  font-size: 1.45rem;
+  line-height: 1.5;
+}
+
+.description img {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid #ddd7ca;
+}
+
+.related {
+  margin-top: 1.8rem;
+}
+
+.related-grid {
+  margin-top: 0.8rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 1rem;
+}
+
+.mini-card {
+  background: #fbfaf5;
+  border: 1px solid #ddd7ca;
+  border-radius: 12px;
+  padding: 0.7rem;
+}
+
+.mini-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.mini-card img {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  border-radius: 9px;
+}
+
+.mini-card h4,
+.mini-card p,
+.mini-card strong {
+  margin: 0.3rem 0;
+}
+
+.not-found {
+  max-width: 780px;
+  margin: 2rem auto;
+  text-align: center;
+}
+
+@media (max-width: 980px) {
+  .top-section,
+  .description {
+    grid-template-columns: 1fr;
+  }
+
+  .thumbs img {
+    height: 80px;
+  }
+}

@@ -64,7 +64,7 @@ app.innerHTML = `
       </section>
     </main>
   </div>
-  `;
+`;
 
 const shirtsGrid = document.querySelector<HTMLDivElement>('#shirts-grid');
 const searchForm = document.querySelector<HTMLFormElement>('#search-form');
@@ -82,10 +82,12 @@ const money = new Intl.NumberFormat('en-US', {
 const shirtCard = (shirt: Shirt) => `
   <article class="shirt-card">
     <button class="like" type="button" aria-label="Save ${shirt.title}">♡</button>
-    <img src="${shirt.imageUrl}" alt="${shirt.title} ${shirt.season} ${shirt.variant}" loading="lazy" />
-    <h4>${shirt.title}</h4>
-    <p>${shirt.season} ${shirt.variant}</p>
-    <strong>${money.format(shirt.price)}</strong>
+    <a class="shirt-link" href="/product.html?id=${encodeURIComponent(shirt.id)}">
+      <img src="${shirt.imageUrl}" alt="${shirt.title} ${shirt.season} ${shirt.variant}" loading="lazy" />
+      <h4>${shirt.title}</h4>
+      <p>${shirt.season} ${shirt.variant}</p>
+      <strong>${money.format(shirt.price)}</strong>
+    </a>
   </article>
 `;
 
@@ -123,8 +125,10 @@ newsletterForm?.addEventListener('submit', async (event) => {
 
   await newsletterRepository.subscribe(newsletterInput.value);
   newsletterInput.value = '';
+
   if (newsletterMessage) {
     newsletterMessage.textContent = 'Thanks! You are now subscribed.';
   }
 });
+
 void renderShirts();
