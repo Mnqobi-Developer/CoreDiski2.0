@@ -2,7 +2,6 @@ import './style.css';
 import { popularQueries } from './data';
 import { newsletterRepository, shirtRepository } from './repository';
 import type { Shirt } from './types';
-import type { CreateShirtInput, Shirt } from './types';
 
 const app = document.querySelector<HTMLDivElement>('#app');
 
@@ -64,7 +63,7 @@ app.innerHTML = `
       </section>
     </main>
   </div>
-`;
+  `;
 
 const shirtsGrid = document.querySelector<HTMLDivElement>('#shirts-grid');
 const searchForm = document.querySelector<HTMLFormElement>('#search-form');
@@ -123,10 +122,8 @@ newsletterForm?.addEventListener('submit', async (event) => {
 
   await newsletterRepository.subscribe(newsletterInput.value);
   newsletterInput.value = '';
-
   if (newsletterMessage) {
     newsletterMessage.textContent = 'Thanks! You are now subscribed.';
   }
 });
-
 void renderShirts();
