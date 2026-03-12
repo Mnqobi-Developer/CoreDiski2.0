@@ -1,0 +1,123 @@
+:root {
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #1f463d;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(circle at 1px 1px, #e9e4d6 1px, transparent 0) 0 0 / 28px 28px,
+    #f6f3ea;
+  color: #1f463d;
+}
+
+.topbar {
+  background: #1f4e44;
+  color: #f3efe6;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.8rem 2rem;
+}
+
+.brand {
+  display: flex;
+  gap: 0.8rem;
+  align-items: center;
+}
+
+.brand-logo {
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 999px;
+  border: 2px solid #f3efe6;
+  display: grid;
+  place-items: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.brand-name {
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.brand-tag {
+  margin: 0;
+  font-size: 0.75rem;
+  opacity: 0.85;
+}
+
+.nav-icons {
+  display: flex;
+  gap: 0.75rem;
+  opacity: 0.9;
+}
+
+.nav-icons a {
+  color: inherit;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.nav-icons a[aria-current='page'] {
+  text-decoration: underline;
+  text-underline-offset: 0.2rem;
+}
+
+.cart-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.crumbs {
+  margin: 0 0 1rem;
+}
+
+.crumbs a {
+  color: inherit;
+}
+
+h1 {
+  text-align: center;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(2.4rem, 4vw, 3.4rem);
+  margin: 0.5rem 0 1.5rem;
+}
+
+.cart-shell {
+  background: #fbfaf5;
+  border: 1px solid #ddd7ca;
+  border-radius: 16px;
+  padding: 1.2rem;
+}
+
+.cart-empty {
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+.cart-empty p {
+  font-size: 1.1rem;
+}
+
+.button-row {
+  display: flex;
+  justify-content: center;
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+.button-row a {
+  background: #1f4e44;
+  color: #fff;
+  text-decoration: none;
+  border-radius: 10px;
+  padding: 0.75rem 1.1rem;
+  font-weight: 600;
+}
