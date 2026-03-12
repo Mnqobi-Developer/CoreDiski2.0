@@ -1,6 +1,7 @@
 import './style.css';
 import { popularQueries } from './data';
 import { newsletterRepository, shirtRepository } from './repository';
+import type { Shirt } from './types';
 import type { CreateShirtInput, Shirt } from './types';
 
 const app = document.querySelector<HTMLDivElement>('#app');
@@ -61,23 +62,6 @@ app.innerHTML = `
         </form>
         <p id="newsletter-message" class="status"></p>
       </section>
-
-      <section class="admin">
-        <h3>Admin Portal (Catalog Management)</h3>
-        <p>Add or update shirts in the inventory below. New items appear instantly on the storefront.</p>
-        <form id="admin-form" class="admin-grid">
-          <input name="title" placeholder="Shirt title (e.g. Juventus)" required />
-          <input name="clubOrNation" placeholder="Club or nation" required />
-          <input name="season" placeholder="Season (e.g. 1997-1998)" required />
-          <input name="variant" placeholder="Variant (Home/Away/Third)" required />
-          <input name="price" type="number" min="1" placeholder="Price" required />
-          <input name="imageUrl" type="url" placeholder="Image URL" required />
-          <input name="tags" placeholder="Tags (comma separated)" required />
-          <label class="checkbox-row"><input type="checkbox" name="featured" /> Featured</label>
-          <button type="submit">Add shirt</button>
-        </form>
-        <p id="admin-message" class="status"></p>
-      </section>
     </main>
   </div>
 `;
@@ -88,8 +72,6 @@ const searchInput = document.querySelector<HTMLInputElement>('#search-input');
 const newsletterForm = document.querySelector<HTMLFormElement>('#newsletter-form');
 const newsletterInput = document.querySelector<HTMLInputElement>('#newsletter-input');
 const newsletterMessage = document.querySelector<HTMLParagraphElement>('#newsletter-message');
-const adminForm = document.querySelector<HTMLFormElement>('#admin-form');
-const adminMessage = document.querySelector<HTMLParagraphElement>('#admin-message');
 
 const money = new Intl.NumberFormat('en-US', {
   style: 'currency',
@@ -144,33 +126,6 @@ newsletterForm?.addEventListener('submit', async (event) => {
 
   if (newsletterMessage) {
     newsletterMessage.textContent = 'Thanks! You are now subscribed.';
-  }
-});
-
-adminForm?.addEventListener('submit', async (event) => {
-  event.preventDefault();
-  const formData = new FormData(adminForm);
-
-  const payload: CreateShirtInput = {
-    title: String(formData.get('title') ?? '').trim(),
-    clubOrNation: String(formData.get('clubOrNation') ?? '').trim(),
-    season: String(formData.get('season') ?? '').trim(),
-    variant: String(formData.get('variant') ?? '').trim(),
-    price: Number(formData.get('price') ?? 0),
-    imageUrl: String(formData.get('imageUrl') ?? '').trim(),
-    tags: String(formData.get('tags') ?? '')
-      .split(',')
-      .map((tag) => tag.trim())
-      .filter(Boolean),
-    featured: Boolean(formData.get('featured')),
-  };
-
-  await shirtRepository.create(payload);
-  adminForm.reset();
-  await renderShirts(searchInput?.value ?? '');
-
-  if (adminMessage) {
-    adminMessage.textContent = `${payload.title} was added to the catalog.`;
   }
 });
 

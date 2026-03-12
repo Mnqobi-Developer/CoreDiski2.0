@@ -77,8 +77,7 @@ body {
 .hero h1,
 .featured h2,
 .newsletter h3,
-.about h3,
-.admin h3 {
+.about h3 {
   font-family: Georgia, 'Times New Roman', serif;
   font-size: clamp(2rem, 4vw, 3.4rem);
   margin: 0;
@@ -87,8 +86,7 @@ body {
 .hero p,
 .featured > p,
 .newsletter > p,
-.about p,
-.admin > p {
+.about p {
   font-size: 1.2rem;
   color: #2f4f47;
 }
@@ -105,8 +103,7 @@ body {
 }
 
 .search-row input,
-.newsletter-row input,
-.admin-grid input {
+.newsletter-row input {
   width: 100%;
   border: 0;
   padding: 0.95rem;
@@ -115,8 +112,7 @@ body {
 
 .search-row button,
 .newsletter-row button,
-.about button,
-.admin-grid button {
+.about button {
   border: 0;
   background: #1f4e44;
   color: #fff;
@@ -209,34 +205,13 @@ body {
   padding: 1rem 0;
 }
 
-.admin {
-  margin-top: 2rem;
-  background: #fbfaf5;
-  border: 1px solid #ddd7ca;
-  border-radius: 16px;
-  padding: 1rem;
-}
-
-.admin-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.7rem;
-}
-
-.checkbox-row {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
 .status {
   color: #19473d;
   font-weight: 600;
 }
 
 @media (max-width: 900px) {
-  .about,
-  .admin-grid {
+  .about {
     grid-template-columns: 1fr;
   }
 
@@ -247,8 +222,7 @@ body {
   .hero p,
   .featured > p,
   .newsletter > p,
-  .about p,
-  .admin > p {
+  .about p {
     font-size: 1rem;
   }
 }
