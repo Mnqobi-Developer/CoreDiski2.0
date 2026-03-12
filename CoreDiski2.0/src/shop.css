@@ -66,6 +66,11 @@ body {
   opacity: 0.9;
 }
 
+.nav-icons a[aria-current="page"] {
+  text-decoration: underline;
+  text-underline-offset: 0.2rem;
+}
+
 .shop-layout {
   max-width: 1320px;
   margin: 0 auto;

@@ -1,6 +1,7 @@
 import './style.css';
 import { popularQueries } from './data';
 import { newsletterRepository, shirtRepository } from './repository';
+import { renderNav } from './nav';
 import type { Shirt } from './types';
 
 const app = document.querySelector<HTMLDivElement>('#app');
@@ -20,7 +21,7 @@ app.innerHTML = `
         </div>
       </div>
       <nav class="nav-icons">
-        <a href="/" aria-label="Home">⌂</a><a href="/shop.html" aria-label="Shop">Shop</a><span>♡</span><span>👤</span><span>🛒</span>
+        ${renderNav(window.location.pathname)}
       </nav>
     </header>
 
