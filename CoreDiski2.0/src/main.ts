@@ -2,6 +2,7 @@ import './style.css';
 import { popularQueries } from './data';
 import { newsletterRepository, shirtRepository } from './repository';
 import type { Shirt } from './types';
+import type { CreateShirtInput, Shirt } from './types';
 
 const app = document.querySelector<HTMLDivElement>('#app');
 
