@@ -1,3 +1,254 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #1f463d;
+  background: #f4f1e8;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(circle at 1px 1px, #e9e4d6 1px, transparent 0) 0 0 / 28px 28px,
+    #f6f3ea;
+  color: #1f463d;
+}
+
+.topbar {
+  background: #1f4e44;
+  color: #f3efe6;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.8rem 2rem;
+}
+
+.brand {
+  display: flex;
+  gap: 0.8rem;
+  align-items: center;
+}
+
+.brand-logo {
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 999px;
+  border: 2px solid #f3efe6;
+  display: grid;
+  place-items: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.brand-name {
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.brand-tag {
+  margin: 0;
+  font-size: 0.75rem;
+  opacity: 0.85;
+}
+
+.nav-icons {
+  display: flex;
+  gap: 0.75rem;
+  opacity: 0.9;
+}
+
+.content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.hero {
+  text-align: center;
+  padding: 3rem 0;
+}
+
+.hero h1,
+.featured h2,
+.newsletter h3,
+.about h3,
+.admin h3 {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  margin: 0;
+}
+
+.hero p,
+.featured > p,
+.newsletter > p,
+.about p,
+.admin > p {
+  font-size: 1.2rem;
+  color: #2f4f47;
+}
+
+.search-row,
+.newsletter-row {
+  display: flex;
+  max-width: 700px;
+  margin: 1.3rem auto;
+  background: #fff;
+  border: 3px solid #1f4e44;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.search-row input,
+.newsletter-row input,
+.admin-grid input {
+  width: 100%;
+  border: 0;
+  padding: 0.95rem;
+  font-size: 1rem;
+}
+
+.search-row button,
+.newsletter-row button,
+.about button,
+.admin-grid button {
+  border: 0;
+  background: #1f4e44;
+  color: #fff;
+  padding: 0.9rem 1.3rem;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.popular {
+  font-size: 0.96rem;
+}
+
+.popular-link {
+  border: 0;
+  background: transparent;
+  text-decoration: underline;
+  color: inherit;
+  cursor: pointer;
+}
+
+.featured {
+  text-align: center;
+  margin-top: 1rem;
+}
+
+.shirts-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.shirt-card {
+  background: #fbfaf5;
+  border-radius: 16px;
+  border: 1px solid #ddd7ca;
+  padding: 0.8rem;
+  position: relative;
+  text-align: left;
+  box-shadow: 0 5px 12px rgba(15, 40, 34, 0.12);
+}
+
+.like {
+  position: absolute;
+  top: 0.7rem;
+  right: 0.7rem;
+  border: 0;
+  background: #f4f1e8;
+  border-radius: 999px;
+}
+
+.shirt-card img {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  border-radius: 10px;
+  background: #ebe4d4;
+}
+
+.shirt-card h4,
+.shirt-card p,
+.shirt-card strong {
+  margin: 0.35rem 0;
+}
+
+.about {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 1rem;
+  margin: 3rem 0;
+  background: #fbfaf5;
+  border: 1px solid #ddd7ca;
+  border-radius: 18px;
+  padding: 1.3rem;
+}
+
+.about-image {
+  border-radius: 14px;
+  border: 1px solid #ddd7ca;
+  background: linear-gradient(140deg, #b88462, #315a75 50%, #ddd);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  min-height: 230px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.newsletter {
+  text-align: center;
+  padding: 1rem 0;
+}
+
+.admin {
+  margin-top: 2rem;
+  background: #fbfaf5;
+  border: 1px solid #ddd7ca;
+  border-radius: 16px;
+  padding: 1rem;
+}
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.status {
+  color: #19473d;
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .about,
+  .admin-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .topbar {
+    padding: 0.7rem 1rem;
+  }
+
+  .hero p,
+  .featured > p,
+  .newsletter > p,
+  .about p,
+  .admin > p {
+    font-size: 1rem;
+  }
+}
