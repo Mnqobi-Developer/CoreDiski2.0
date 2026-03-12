@@ -6,6 +6,7 @@ export type NavPage = {
 export const navPages: NavPage[] = [
   { href: '/', label: 'Home' },
   { href: '/shop.html', label: 'Shop' },
+  { href: '/cart.html', label: 'Cart' },
 ];
 
 export const renderNav = (currentPathname: string) =>

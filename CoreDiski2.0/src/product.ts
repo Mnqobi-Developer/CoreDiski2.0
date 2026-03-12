@@ -106,7 +106,7 @@ const renderProduct = async () => {
               <button type="button">XL</button>
             </div>
 
-            <button type="button" class="primary">Add To Cart</button>
+            <button type="button" class="primary" id="add-to-cart">Add To Cart</button>
             <button type="button" class="secondary">♡ Add to Wishlist</button>
           </div>
         </section>
@@ -127,6 +127,12 @@ const renderProduct = async () => {
       </main>
     </div>
   `;
+
+
+  const addToCartButton = document.querySelector<HTMLButtonElement>('#add-to-cart');
+  addToCartButton?.addEventListener('click', () => {
+    window.location.href = '/cart.html';
+  });
 };
 
 void renderProduct();
