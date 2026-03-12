@@ -16,3 +16,20 @@ export type NewsletterSubscription = {
   email: string;
   subscribedAt: string;
 };
+
+export type ShirtSize = 'S' | 'M' | 'L' | 'XL';
+
+export type CartItem = {
+  id: string;
+  shirtId: string;
+  size: ShirtSize;
+  quantity: number;
+  addedAt: string;
+};
+
+export type WishlistItem = {
+  id: string;
+  shirtId: string;
+  size: ShirtSize;
+  addedAt: string;
+};

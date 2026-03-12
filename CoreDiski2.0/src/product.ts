@@ -1,7 +1,7 @@
 import './product.css';
 import { renderNav } from './nav';
-import { shirtRepository } from './repository';
-import type { Shirt } from './types';
+import { cartRepository, shirtRepository, wishlistRepository } from './repository';
+import type { Shirt, ShirtSize } from './types';
 
 const app = document.querySelector<HTMLDivElement>('#app');
 
@@ -100,14 +100,15 @@ const renderProduct = async () => {
 
             <div class="sizes">
               <span>Size:</span>
-              <button type="button">S</button>
-              <button type="button" class="active">M</button>
-              <button type="button">L</button>
-              <button type="button">XL</button>
+              <button type="button" data-size="S">S</button>
+              <button type="button" class="active" data-size="M">M</button>
+              <button type="button" data-size="L">L</button>
+              <button type="button" data-size="XL">XL</button>
             </div>
 
-            <button type="button" class="primary">Add To Cart</button>
-            <button type="button" class="secondary">♡ Add to Wishlist</button>
+            <p id="selection-status" class="selection-status">Selected size: M</p>
+            <button type="button" class="primary" id="add-to-cart">Add To Cart</button>
+            <button type="button" class="secondary" id="add-to-wishlist">♡ Add to Wishlist</button>
           </div>
         </section>
 
@@ -127,6 +128,40 @@ const renderProduct = async () => {
       </main>
     </div>
   `;
+
+  let selectedSize: ShirtSize = 'M';
+  const status = document.querySelector<HTMLParagraphElement>('#selection-status');
+  const sizeButtons = Array.from(document.querySelectorAll<HTMLButtonElement>('.sizes button[data-size]'));
+
+  sizeButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      const nextSize = button.dataset.size as ShirtSize | undefined;
+
+      if (!nextSize) {
+        return;
+      }
+
+      selectedSize = nextSize;
+      sizeButtons.forEach((sizeButton) => sizeButton.classList.remove('active'));
+      button.classList.add('active');
+
+      if (status) {
+        status.textContent = `Selected size: ${selectedSize}`;
+      }
+    });
+  });
+
+  const addToCartButton = document.querySelector<HTMLButtonElement>('#add-to-cart');
+  addToCartButton?.addEventListener('click', async () => {
+    await cartRepository.add(shirt.id, selectedSize);
+    window.location.href = '/cart.html';
+  });
+
+  const addToWishlistButton = document.querySelector<HTMLButtonElement>('#add-to-wishlist');
+  addToWishlistButton?.addEventListener('click', async () => {
+    await wishlistRepository.add(shirt.id, selectedSize);
+    window.location.href = '/wishlist.html';
+  });
 };
 
 void renderProduct();
