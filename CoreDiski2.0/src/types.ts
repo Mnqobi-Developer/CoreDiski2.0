@@ -43,6 +43,7 @@ export type UserAccount = {
   address?: string;
   emailPreferences?: string;
   createdAt: string;
+  isAdmin?: boolean;
 };
 
 export type AuthSession = {

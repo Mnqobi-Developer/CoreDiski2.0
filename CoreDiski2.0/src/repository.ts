@@ -99,6 +99,29 @@ const readSession = (): AuthSession | null => {
   }
 };
 
+
+
+const readUsers = (): UserAccount[] => {
+  const users = readJsonArray<UserAccount>(USERS_KEY);
+
+  if (users.some((user) => user.email.toLowerCase() === 'admin@corediski.com')) {
+    return users;
+  }
+
+  const adminUser: UserAccount = {
+    id: randomId(),
+    fullName: 'Core Diski Admin',
+    email: 'admin@corediski.com',
+    password: 'Admin@12345',
+    createdAt: new Date().toISOString(),
+    isAdmin: true,
+  };
+
+  const seeded = [adminUser, ...users];
+  writeUsers(seeded);
+  return seeded;
+};
+
 export const shirtRepository = {
   async list(search = ''): Promise<Shirt[]> {
     const normalized = search.trim().toLowerCase();
@@ -136,6 +159,24 @@ export const shirtRepository = {
     const updated = [created, ...shirts];
     writeShirts(updated);
     return created;
+  },
+
+  async update(id: string, input: CreateShirtInput): Promise<Shirt | null> {
+    const shirts = readShirts();
+    const existing = shirts.find((shirt) => shirt.id === id);
+
+    if (!existing) {
+      return null;
+    }
+
+    const updatedShirt: Shirt = {
+      ...existing,
+      ...input,
+      id: existing.id,
+    };
+
+    writeShirts(shirts.map((shirt) => (shirt.id === id ? updatedShirt : shirt)));
+    return updatedShirt;
   },
 };
 
@@ -225,7 +266,7 @@ export const wishlistRepository = {
 
 export const authRepository = {
   async register(fullName: string, email: string, password: string): Promise<{ user?: UserAccount; error?: string }> {
-    const users = readJsonArray<UserAccount>(USERS_KEY);
+    const users = readUsers();
     const normalizedEmail = email.trim().toLowerCase();
 
     if (users.some((user) => user.email.toLowerCase() === normalizedEmail)) {
@@ -238,6 +279,7 @@ export const authRepository = {
       email: normalizedEmail,
       password,
       createdAt: new Date().toISOString(),
+      isAdmin: false,
     };
 
     writeUsers([user, ...users]);
@@ -247,7 +289,7 @@ export const authRepository = {
   },
 
   async signIn(email: string, password: string): Promise<{ user?: UserAccount; error?: string }> {
-    const users = readJsonArray<UserAccount>(USERS_KEY);
+    const users = readUsers();
     const normalizedEmail = email.trim().toLowerCase();
     const user = users.find((entry) => entry.email.toLowerCase() === normalizedEmail && entry.password === password);
 
@@ -266,7 +308,7 @@ export const authRepository = {
       return null;
     }
 
-    const users = readJsonArray<UserAccount>(USERS_KEY);
+    const users = readUsers();
     return users.find((user) => user.id === session.userId) ?? null;
   },
 
@@ -281,7 +323,7 @@ export const authRepository = {
       return { error: 'You must be signed in to update your profile.' };
     }
 
-    const users = readJsonArray<UserAccount>(USERS_KEY);
+    const users = readUsers();
     const user = users.find((entry) => entry.id === session.userId);
 
     if (!user) {

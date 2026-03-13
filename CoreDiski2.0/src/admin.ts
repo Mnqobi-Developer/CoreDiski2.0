@@ -1,0 +1,376 @@
+import './admin.css';
+import { requireSignedIn } from './auth';
+import { authRepository, shirtRepository } from './repository';
+import type { CreateShirtInput } from './types';
+
+const app = document.querySelector<HTMLDivElement>('#app');
+
+if (!app) {
+  throw new Error('App container not found');
+}
+
+const navItems = [
+  { href: '/admin.html', label: 'Dashboard' },
+  { href: '/admin-products.html', label: 'Products' },
+  { href: '/admin-orders.html', label: 'Orders' },
+  { href: '/admin-customers.html', label: 'Customers' },
+  { href: '/admin-categories.html', label: 'Categories' },
+  { href: '/admin-analytics.html', label: 'Analytics' },
+  { href: '/admin-settings.html', label: 'Settings' },
+];
+
+const secondaryNav = [
+  { href: '/', label: 'Home' },
+  { href: '/shop.html', label: 'Main Website' },
+  { href: '/profile.html', label: 'Contact Support' },
+];
+
+const pageTitleMap: Record<string, string> = {
+  '/admin.html': 'Dashboard',
+  '/admin-products.html': 'Products',
+  '/admin-orders.html': 'Orders',
+  '/admin-customers.html': 'Customers',
+  '/admin-categories.html': 'Categories',
+  '/admin-analytics.html': 'Analytics',
+  '/admin-settings.html': 'Settings',
+};
+
+let editingProductId: string | null = null;
+
+const escapeHtml = (value: string) =>
+  value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+
+const money = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+  maximumFractionDigits: 0,
+});
+
+const renderDashboard = async () => {
+  const shirts = await shirtRepository.list();
+  const totalProducts = shirts.length;
+  const totalOrders = 1524;
+  const totalCustomers = 980;
+  const outOfStock = 5;
+  const featuredRows = shirts.slice(0, 5);
+
+  return `
+    <h1 class="section-title">Dashboard</h1>
+    <section class="metrics">
+      <article class="metric-card"><p class="label">Total Products</p><p class="value">${totalProducts}</p></article>
+      <article class="metric-card"><p class="label">Total Orders</p><p class="value">${totalOrders.toLocaleString()}</p></article>
+      <article class="metric-card"><p class="label">Total Customers</p><p class="value">${totalCustomers}</p></article>
+      <article class="metric-card"><p class="label">Out of Stock</p><p class="value">${outOfStock}</p></article>
+    </section>
+
+    <section class="panel">
+      <h2 class="panel-title">Recent Products</h2>
+      <table class="table">
+        <thead>
+          <tr><th>Product</th><th>Price</th><th>Stock</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          ${featuredRows
+            .map(
+              (shirt, index) => `
+                <tr>
+                  <td><strong>${escapeHtml(shirt.title)}</strong><br/><small>${escapeHtml(shirt.season)} ${escapeHtml(shirt.variant)}</small></td>
+                  <td>${money.format(shirt.price)}</td>
+                  <td>${Math.max(6, 26 - index * 3)}</td>
+                  <td><span class="status-pill active">Active</span></td>
+                </tr>`,
+            )
+            .join('')}
+        </tbody>
+      </table>
+    </section>
+
+    <section class="simple-grid">
+      <article class="panel">
+        <h2 class="panel-title">Recent Orders</h2>
+        <table class="table">
+          <tbody>
+            <tr><td>#10204</td><td>Mark Johnson</td><td>Today</td></tr>
+            <tr><td>#10203</td><td>Emma Wilson</td><td>Yesterday</td></tr>
+            <tr><td>#10202</td><td>Gregory Lewis</td><td>April 22</td></tr>
+            <tr><td>#10201</td><td>Laura White</td><td>April 20</td></tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="panel">
+        <h2 class="panel-title">Order Status</h2>
+        <table class="table">
+          <tbody>
+            <tr><td>#10204</td><td>Mark Johnson</td><td><span class="status-pill pending">Pending</span></td></tr>
+            <tr><td>#10203</td><td>Emma Wilson</td><td><span class="status-pill shipped">Shipped</span></td></tr>
+            <tr><td>#10202</td><td>Gregory Lewis</td><td><span class="status-pill pending">Pending</span></td></tr>
+            <tr><td>#10201</td><td>Laura White</td><td><span class="status-pill completed">Completed</span></td></tr>
+          </tbody>
+        </table>
+      </article>
+    </section>
+  `;
+};
+
+const renderProductsManager = async () => {
+  const shirts = await shirtRepository.list();
+  const editingProduct = editingProductId ? shirts.find((shirt) => shirt.id === editingProductId) ?? null : null;
+
+  const fallback: CreateShirtInput = {
+    clubOrNation: '',
+    title: '',
+    season: '',
+    variant: '',
+    price: 100,
+    imageUrl: '',
+    tags: [],
+    featured: false,
+  };
+
+  const seed = editingProduct ?? fallback;
+
+  return `
+    <h1 class="section-title">Products</h1>
+    <section class="panel">
+      <h2 class="panel-title">${editingProduct ? 'Edit Product' : 'Add New Product'}</h2>
+      <p class="admin-helper">Enter all football shirt details below. You can create a new product or edit an existing one.</p>
+      <form id="product-form" class="product-form">
+        <label>Club or Nation
+          <input name="clubOrNation" value="${escapeHtml(seed.clubOrNation)}" required />
+        </label>
+        <label>Product Title
+          <input name="title" value="${escapeHtml(seed.title)}" required />
+        </label>
+        <label>Season
+          <input name="season" value="${escapeHtml(seed.season)}" required placeholder="e.g. 1998-1999" />
+        </label>
+        <label>Variant
+          <input name="variant" value="${escapeHtml(seed.variant)}" required placeholder="Home / Away / Third" />
+        </label>
+        <label>Price (USD)
+          <input name="price" type="number" min="1" step="1" value="${seed.price}" required />
+        </label>
+        <label>Image URL
+          <input name="imageUrl" type="url" value="${escapeHtml(seed.imageUrl)}" required placeholder="https://..." />
+        </label>
+        <label class="full">Tags (comma-separated)
+          <input name="tags" value="${escapeHtml(seed.tags.join(', '))}" placeholder="retro, classic, premier league" />
+        </label>
+        <label class="check-row full">
+          <input name="featured" type="checkbox" ${seed.featured ? 'checked' : ''} />
+          Mark as featured
+        </label>
+
+        <div class="product-form-actions full">
+          <button class="primary" type="submit">${editingProduct ? 'Save Changes' : 'Add Product'}</button>
+          ${editingProduct ? '<button id="cancel-edit" class="secondary" type="button">Cancel Edit</button>' : ''}
+        </div>
+      </form>
+      <p id="product-status" class="status"></p>
+    </section>
+
+    <section class="panel">
+      <h2 class="panel-title">Available Store Products</h2>
+      <p class="admin-helper">All products currently in the storefront are listed below.</p>
+      <div class="panel-scroll">
+        <table class="table product-table">
+          <thead>
+            <tr><th>Product</th><th>Season</th><th>Price</th><th>Tags</th><th>Featured</th><th>Action</th></tr>
+          </thead>
+          <tbody>
+            ${shirts
+              .map(
+                (shirt) => `
+                  <tr>
+                    <td>
+                      <div class="product-cell">
+                        <img src="${escapeHtml(shirt.imageUrl)}" alt="${escapeHtml(shirt.title)}" />
+                        <div>
+                          <strong>${escapeHtml(shirt.title)}</strong>
+                          <p>${escapeHtml(shirt.clubOrNation)} · ${escapeHtml(shirt.variant)}</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td>${escapeHtml(shirt.season)}</td>
+                    <td>${money.format(shirt.price)}</td>
+                    <td>${escapeHtml(shirt.tags.join(', '))}</td>
+                    <td>${shirt.featured ? '<span class="status-pill active">Yes</span>' : '<span class="status-pill pending">No</span>'}</td>
+                    <td><button class="secondary edit-product" data-id="${shirt.id}" type="button">Edit</button></td>
+                  </tr>`,
+              )
+              .join('')}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  `;
+};
+
+const renderSection = async (pathname: string) => {
+  if (pathname === '/admin.html' || pathname === '/admin') {
+    return renderDashboard();
+  }
+
+  if (pathname === '/admin-products.html') {
+    return renderProductsManager();
+  }
+
+  const heading = pageTitleMap[pathname] ?? 'Admin';
+
+  return `
+    <h1 class="section-title">${heading}</h1>
+    <section class="simple-grid">
+      <article class="simple-card">
+        <h2>Overview</h2>
+        <p>Manage ${heading.toLowerCase()} from this section of the admin portal.</p>
+      </article>
+      <article class="simple-card">
+        <h2>Quick Action</h2>
+        <p>Use this page to add, edit, and track ${heading.toLowerCase()} records.</p>
+      </article>
+      <article class="simple-card">
+        <h2>Insights</h2>
+        <p>Performance indicators and summaries for ${heading.toLowerCase()} will appear here.</p>
+      </article>
+    </section>
+  `;
+};
+
+const productInputFromForm = (form: HTMLFormElement): CreateShirtInput => {
+  const data = new FormData(form);
+  return {
+    clubOrNation: String(data.get('clubOrNation') ?? '').trim(),
+    title: String(data.get('title') ?? '').trim(),
+    season: String(data.get('season') ?? '').trim(),
+    variant: String(data.get('variant') ?? '').trim(),
+    price: Number(data.get('price') ?? 0),
+    imageUrl: String(data.get('imageUrl') ?? '').trim(),
+    tags: String(data.get('tags') ?? '')
+      .split(',')
+      .map((tag) => tag.trim())
+      .filter(Boolean),
+    featured: Boolean(data.get('featured')),
+  };
+};
+
+const bindProductsActions = () => {
+  const form = document.querySelector<HTMLFormElement>('#product-form');
+  const status = document.querySelector<HTMLParagraphElement>('#product-status');
+  const cancelEdit = document.querySelector<HTMLButtonElement>('#cancel-edit');
+
+  form?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+
+    const input = productInputFromForm(form);
+
+    if (!input.clubOrNation || !input.title || !input.season || !input.variant || !input.imageUrl || input.price <= 0) {
+      if (status) {
+        status.className = 'status error';
+        status.textContent = 'Please complete all required fields with valid values.';
+      }
+      return;
+    }
+
+    if (editingProductId) {
+      await shirtRepository.update(editingProductId, input);
+      editingProductId = null;
+      if (status) {
+        status.className = 'status success';
+        status.textContent = 'Product updated successfully.';
+      }
+    } else {
+      await shirtRepository.create(input);
+      if (status) {
+        status.className = 'status success';
+        status.textContent = 'Product added successfully.';
+      }
+    }
+
+    await renderPage();
+  });
+
+  document.querySelectorAll<HTMLButtonElement>('.edit-product').forEach((button) => {
+    button.addEventListener('click', async () => {
+      editingProductId = button.dataset.id ?? null;
+      await renderPage();
+    });
+  });
+
+  cancelEdit?.addEventListener('click', async () => {
+    editingProductId = null;
+    await renderPage();
+  });
+};
+
+const renderPage = async () => {
+  const signedIn = await requireSignedIn();
+  if (!signedIn) return;
+
+  const user = await authRepository.getCurrentUser();
+
+  if (!user?.isAdmin) {
+    window.location.href = '/';
+    return;
+  }
+
+  const pathname = window.location.pathname;
+  const body = await renderSection(pathname);
+
+  app.innerHTML = `
+    <div class="admin-shell">
+      <header class="admin-topbar">
+        <div class="admin-brand">
+          <img src="/logo.svg" alt="Core Diski logo" />
+          <div>
+            <p class="title">CORE DISKI</p>
+            <p class="subtitle">Admin Portal</p>
+          </div>
+        </div>
+        <div class="admin-toolbar">
+          <a href="/">Home</a>
+          <a href="/shop.html">Storefront</a>
+          <button id="admin-logout" type="button">Sign Out</button>
+        </div>
+      </header>
+
+      <div class="admin-layout">
+        <aside class="admin-sidebar">
+          <nav class="admin-menu">
+            ${navItems
+              .map((item) => `<a href="${item.href}" ${item.href === pathname ? 'aria-current="page"' : ''}>${item.label}</a>`)
+              .join('')}
+          </nav>
+          <nav class="admin-menu-bottom">
+            ${secondaryNav.map((item) => `<a href="${item.href}">${item.label}</a>`).join('')}
+          </nav>
+        </aside>
+
+        <main class="admin-main">
+          <section class="admin-main-header">
+            <input type="search" placeholder="Search..." aria-label="Search admin portal" />
+            <strong>${pageTitleMap[pathname] ?? 'Admin'}</strong>
+          </section>
+          ${body}
+        </main>
+      </div>
+    </div>
+  `;
+
+  const logout = document.querySelector<HTMLButtonElement>('#admin-logout');
+  logout?.addEventListener('click', async () => {
+    await authRepository.signOut();
+    window.location.href = '/signin.html';
+  });
+
+  if (pathname === '/admin-products.html') {
+    bindProductsActions();
+  }
+};
+
+void renderPage();
