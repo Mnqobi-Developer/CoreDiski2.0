@@ -1,0 +1,120 @@
+:root {
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #1f463d;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: radial-gradient(circle at 1px 1px, #e9e4d6 1px, transparent 0) 0 0 / 28px 28px, #f6f3ea;
+  color: #1f463d;
+}
+
+.topbar { background: #1f4e44; color: #f3efe6; display: flex; justify-content: space-between; align-items: center; padding: 0.8rem 2rem; }
+.brand { display: flex; gap: 0.8rem; align-items: center; }
+.brand-logo { width: 2.4rem; height: 2.4rem; border-radius: 999px; border: 2px solid #f3efe6; }
+.brand-name { margin: 0; font-weight: 700; letter-spacing: 0.06em; }
+.brand-tag { margin: 0; font-size: 0.75rem; opacity: 0.85; }
+.nav-icons { display: flex; gap: 0.75rem; opacity: 0.9; }
+.nav-icons a { color: inherit; text-decoration: none; font-weight: 600; }
+.nav-icons a[aria-current='page'] { text-decoration: underline; text-underline-offset: 0.2rem; }
+
+.checkout-page { max-width: 1220px; margin: 0 auto; padding: 1.5rem; }
+h1 { margin: 0 0 1rem; font-family: Georgia, 'Times New Roman', serif; font-size: clamp(2rem, 4vw, 3.1rem); }
+
+.checkout-layout { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 1.1rem; align-items: start; }
+.card {
+  background: #fbfaf5;
+  border: 1px solid #ddd7ca;
+  border-radius: 14px;
+  padding: 1.1rem;
+  margin-bottom: 1rem;
+}
+
+.card h2 { margin: 0 0 0.9rem; font-family: Georgia, 'Times New Roman', serif; font-size: 1.95rem; }
+.card h3 { margin: 0.2rem 0 0.7rem; font-size: 1.6rem; }
+.muted { color: #4d5f5a; }
+
+.customer-head { display: flex; justify-content: space-between; gap: 0.6rem; align-items: center; }
+.small-btn {
+  border: 1px solid #cfc8b8;
+  border-radius: 8px;
+  background: #f5f1e7;
+  color: #1f463d;
+  padding: 0.45rem 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.method-pill {
+  border: 1px solid #d5cebf;
+  border-radius: 9px;
+  padding: 0.75rem;
+  background: #fff;
+  font-weight: 700;
+}
+
+label { display: block; font-weight: 600; margin-bottom: 0.45rem; }
+input, textarea, select {
+  width: 100%;
+  border: 1px solid #d5cebf;
+  border-radius: 10px;
+  background: #fff;
+  color: #1f463d;
+  padding: 0.7rem 0.75rem;
+  font: inherit;
+}
+textarea { resize: vertical; min-height: 86px; }
+
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
+.form-grid .full { grid-column: 1 / -1; }
+.segment { display: flex; gap: 0.55rem; margin-bottom: 0.8rem; }
+.segment button {
+  border: 1px solid #d5cebf;
+  border-radius: 8px;
+  background: #f6f3ea;
+  padding: 0.45rem 0.9rem;
+  font-weight: 700;
+  color: inherit;
+  cursor: pointer;
+}
+.segment button.active { background: #1f4e44; color: #fff; border-color: #1f4e44; }
+.checkbox { display: flex; gap: 0.5rem; align-items: center; margin: 0.8rem 0; }
+.checkbox input { width: 1rem; height: 1rem; }
+
+.order-line { display: grid; grid-template-columns: 72px 1fr auto; gap: 0.8rem; align-items: center; padding: 0.7rem 0; border-bottom: 1px solid #e0dbcf; }
+.order-line img { width: 72px; height: 86px; object-fit: cover; border-radius: 8px; border: 1px solid #ddd7ca; }
+.order-line h4 { margin: 0; font-size: 1.05rem; }
+.order-line p { margin: 0.2rem 0; }
+.order-line .price { font-weight: 700; font-size: 1.2rem; }
+
+.totals { margin-top: 0.8rem; }
+.totals p { display: flex; justify-content: space-between; margin: 0.45rem 0; font-size: 1.2rem; }
+.totals .grand { font-size: 2rem; font-weight: 800; }
+
+.complete-btn {
+  width: 100%;
+  border: 0;
+  border-radius: 10px;
+  padding: 0.95rem;
+  font-weight: 800;
+  cursor: pointer;
+  background: #1f4e44;
+  color: #fff;
+  margin-top: 0.8rem;
+  font-size: 1.1rem;
+}
+.complete-btn:disabled { opacity: 0.7; cursor: wait; }
+.status { margin-top: 0.6rem; font-weight: 600; }
+.status.error { color: #ad1d37; }
+.status.success { color: #1f6c41; }
+
+@media (max-width: 980px) {
+  .checkout-layout { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 640px) {
+  .checkout-page { padding: 1rem; }
+  .form-grid { grid-template-columns: 1fr; }
+}

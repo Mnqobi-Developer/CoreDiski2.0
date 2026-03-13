@@ -23,6 +23,7 @@ body { margin: 0; background: radial-gradient(circle at 1px 1px, #e9e4d6 1px, tr
 .status { min-height: 1.2rem; margin: 0.3rem 0 0; text-align: center; }
 .status.error { color: #a2342a; }
 .status.success { color: #1f4e44; }
+.resend-link { border: 0; background: transparent; color: #1f4e44; text-decoration: underline; font-weight: 700; cursor: pointer; display: block; margin: 0.2rem auto 0.6rem; }
 
 @media (max-width: 640px) {
   .auth-wrap {

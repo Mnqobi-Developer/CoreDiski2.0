@@ -14,7 +14,7 @@ if (!app) {
 const params = new URLSearchParams(window.location.search);
 const shirtId = params.get('id') ?? '';
 
-const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+const money = new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 });
 
 const shirtCard = (shirt: Shirt) => `
   <article class="mini-card">
