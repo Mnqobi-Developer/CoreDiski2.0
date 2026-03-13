@@ -15,7 +15,7 @@ app.innerHTML = `
   <div class="page">
     <header class="topbar">
       <div class="brand">
-        <img class="brand-logo" src="/logo.svg" alt="Core Diski logo" />
+        <a class="brand-home" href="/#hero" aria-label="Go to Core Diski homepage hero section"><img class="brand-logo" src="/logo.svg" alt="Core Diski logo" /></a>
         <div>
           <p class="brand-name">CORE DISKI</p>
           <p class="brand-tag">Authentic Football Shirts</p>
@@ -27,7 +27,7 @@ app.innerHTML = `
     </header>
 
     <main class="content">
-      <section class="hero">
+      <section id="hero" class="hero">
         <img class="hero-logo" src="/logo.svg" alt="Core Diski logo" />
         <h1>Authentic Football Shirts</h1>
         <p>Discover rare, verified jerseys from every club and nation<br/>Heritage. Authenticity. Passion.</p>

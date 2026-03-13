@@ -32,7 +32,7 @@ const renderNotFound = () => {
     <div class="product-page">
       <header class="topbar">
         <div class="brand">
-          <img class="brand-logo" src="/logo.svg" alt="Core Diski logo" />
+          <a class="brand-home" href="/#hero" aria-label="Go to Core Diski homepage hero section"><img class="brand-logo" src="/logo.svg" alt="Core Diski logo" /></a>
           <div>
             <p class="brand-name">CORE DISKI</p>
             <p class="brand-tag">Authentic Football Shirts</p>
@@ -65,7 +65,7 @@ const renderProduct = async () => {
     <div class="product-page">
       <header class="topbar">
         <div class="brand">
-          <img class="brand-logo" src="/logo.svg" alt="Core Diski logo" />
+          <a class="brand-home" href="/#hero" aria-label="Go to Core Diski homepage hero section"><img class="brand-logo" src="/logo.svg" alt="Core Diski logo" /></a>
           <div>
             <p class="brand-name">CORE DISKI</p>
             <p class="brand-tag">Authentic Football Shirts</p>
