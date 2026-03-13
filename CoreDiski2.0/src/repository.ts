@@ -37,6 +37,34 @@ const hydrateSeed = (): Shirt[] =>
     id: randomId(),
   }));
 
+const isValidCardNumber = (cardNumber: string) => {
+  const digits = cardNumber.replace(/\D/g, '');
+
+  if (digits.length < 12) {
+    return false;
+  }
+
+  let sum = 0;
+  let shouldDouble = false;
+
+  for (let index = digits.length - 1; index >= 0; index -= 1) {
+    let digit = Number(digits[index]);
+
+    if (shouldDouble) {
+      digit *= 2;
+
+      if (digit > 9) {
+        digit -= 9;
+      }
+    }
+
+    sum += digit;
+    shouldDouble = !shouldDouble;
+  }
+
+  return sum % 10 === 0;
+};
+
 const readJsonArray = <T>(key: string): T[] => {
   const raw = localStorage.getItem(key);
 
