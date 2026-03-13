@@ -9,6 +9,7 @@ import type {
   UserAccount,
   WishlistItem,
   AdminUserRecord,
+  Order,
 } from './types';
 
 const SHIRTS_KEY = 'corediski_shirts';
@@ -17,6 +18,7 @@ const CART_KEY = 'corediski_cart';
 const WISHLIST_KEY = 'corediski_wishlist';
 const USERS_KEY = 'corediski_users';
 const SESSION_KEY = 'corediski_session';
+const ORDERS_KEY = 'corediski_orders';
 
 const randomId = () =>
   typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -75,6 +77,10 @@ const writeWishlist = (items: WishlistItem[]) => {
 
 const writeUsers = (users: UserAccount[]) => {
   localStorage.setItem(USERS_KEY, JSON.stringify(users));
+};
+
+const writeOrders = (orders: Order[]) => {
+  localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
 };
 
 const writeSession = (session: AuthSession | null) => {
@@ -414,6 +420,88 @@ export const adminRepository = {
     }
 
     return true;
+  },
+};
+
+
+export const orderRepository = {
+  async listCurrentUser(): Promise<Order[]> {
+    const session = readSession();
+
+    if (!session) {
+      return [];
+    }
+
+    const orders = readJsonArray<Order>(ORDERS_KEY);
+    return orders.filter((order) => order.userId === session.userId);
+  },
+
+  async createCurrentUserOrder(input: {
+    customerName: string;
+    customerEmail: string;
+    shippingAddress: string;
+    billingAddress: string;
+    shippingMethod: string;
+    paymentMethod: 'card' | 'paypal' | 'gpay';
+  }): Promise<{ order?: Order; error?: string }> {
+    const session = readSession();
+
+    if (!session) {
+      return { error: 'You must be signed in to place an order.' };
+    }
+
+    const cartItems = readJsonArray<CartItem>(CART_KEY);
+
+    if (!cartItems.length) {
+      return { error: 'Your cart is empty.' };
+    }
+
+    const shirts = readShirts();
+    const validItems = cartItems
+      .map((item) => {
+        const shirt = shirts.find((entry) => entry.id === item.shirtId);
+
+        if (!shirt) {
+          return null;
+        }
+
+        return {
+          shirtId: shirt.id,
+          size: item.size,
+          quantity: item.quantity,
+          unitPrice: shirt.price,
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => Boolean(item));
+
+    if (!validItems.length) {
+      return { error: 'Unable to create an order because cart items are unavailable.' };
+    }
+
+    const subtotal = validItems.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
+    const shippingCost = 0;
+    const order: Order = {
+      id: randomId(),
+      userId: session.userId,
+      customerName: input.customerName.trim(),
+      customerEmail: input.customerEmail.trim().toLowerCase(),
+      shippingAddress: input.shippingAddress.trim(),
+      billingAddress: input.billingAddress.trim(),
+      shippingMethod: input.shippingMethod,
+      paymentMethod: input.paymentMethod,
+      subtotal,
+      shippingCost,
+      total: subtotal + shippingCost,
+      status: 'paid',
+      createdAt: new Date().toISOString(),
+      items: validItems,
+    };
+
+    const orders = readJsonArray<Order>(ORDERS_KEY);
+    writeOrders([order, ...orders]);
+    writeCart([]);
+
+    return { order };
   },
 };
 
