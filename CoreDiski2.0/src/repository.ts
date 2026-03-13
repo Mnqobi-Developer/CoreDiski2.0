@@ -160,6 +160,24 @@ export const shirtRepository = {
     writeShirts(updated);
     return created;
   },
+
+  async update(id: string, input: CreateShirtInput): Promise<Shirt | null> {
+    const shirts = readShirts();
+    const existing = shirts.find((shirt) => shirt.id === id);
+
+    if (!existing) {
+      return null;
+    }
+
+    const updatedShirt: Shirt = {
+      ...existing,
+      ...input,
+      id: existing.id,
+    };
+
+    writeShirts(shirts.map((shirt) => (shirt.id === id ? updatedShirt : shirt)));
+    return updatedShirt;
+  },
 };
 
 export const cartRepository = {
