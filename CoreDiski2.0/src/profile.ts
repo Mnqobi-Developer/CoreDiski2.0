@@ -2,7 +2,7 @@ import './profile.css';
 import './nav-brand.css';
 import { requireSignedIn } from './auth';
 import { renderNav } from './nav';
-import { authRepository } from './repository';
+import { authRepository, orderRepository } from './repository';
 
 const app = document.querySelector<HTMLDivElement>('#app');
 
@@ -31,11 +31,14 @@ const renderPage = async () => {
   }
 
   const user = await authRepository.getCurrentUser();
+  const orders = await orderRepository.listCurrentUser();
 
   if (!user) {
     window.location.href = '/signin.html?redirect=%2Fprofile.html';
     return;
   }
+
+  const completedOrders = orders.filter((order) => order.status === 'paid').length;
 
   app.innerHTML = `
     <div class="profile-page">
@@ -81,7 +84,7 @@ const renderPage = async () => {
               <ul class="detail-list">
                 <li><strong>Pending Orders</strong><span>0</span></li>
                 <li><strong>Shipped</strong><span>0</span></li>
-                <li><strong>Completed</strong><span>0</span></li>
+                <li><strong>Completed</strong><span>${completedOrders}</span></li>
               </ul>
             </article>
 
