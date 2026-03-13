@@ -270,6 +270,44 @@ export const authRepository = {
     return users.find((user) => user.id === session.userId) ?? null;
   },
 
+
+
+  async updateCurrentUser(
+    updates: Pick<UserAccount, 'fullName' | 'email' | 'phone' | 'address' | 'emailPreferences'>,
+  ): Promise<{ user?: UserAccount; error?: string }> {
+    const session = readSession();
+
+    if (!session) {
+      return { error: 'You must be signed in to update your profile.' };
+    }
+
+    const users = readJsonArray<UserAccount>(USERS_KEY);
+    const user = users.find((entry) => entry.id === session.userId);
+
+    if (!user) {
+      return { error: 'Unable to find your account.' };
+    }
+
+    const normalizedEmail = updates.email.trim().toLowerCase();
+    const emailTaken = users.some((entry) => entry.id !== user.id && entry.email.toLowerCase() === normalizedEmail);
+
+    if (emailTaken) {
+      return { error: 'Another account is already using this email.' };
+    }
+
+    const updatedUser: UserAccount = {
+      ...user,
+      fullName: updates.fullName.trim(),
+      email: normalizedEmail,
+      phone: updates.phone?.trim() || '',
+      address: updates.address?.trim() || '',
+      emailPreferences: updates.emailPreferences?.trim() || '',
+    };
+
+    writeUsers(users.map((entry) => (entry.id === user.id ? updatedUser : entry)));
+    return { user: updatedUser };
+  },
+
   async isSignedIn(): Promise<boolean> {
     const user = await this.getCurrentUser();
     return Boolean(user);

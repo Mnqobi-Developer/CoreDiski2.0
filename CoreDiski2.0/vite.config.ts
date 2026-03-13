@@ -12,6 +12,7 @@ export default defineConfig({
         wishlist: resolve(__dirname, 'wishlist.html'),
         signin: resolve(__dirname, 'signin.html'),
         register: resolve(__dirname, 'register.html'),
+        profile: resolve(__dirname, 'profile.html'),
       },
     },
   },

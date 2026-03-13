@@ -8,6 +8,7 @@ export const navPages: NavPage[] = [
   { href: '/shop.html', label: 'Shop' },
   { href: '/cart.html', label: 'Cart' },
   { href: '/wishlist.html', label: 'Wishlist' },
+  { href: '/profile.html', label: 'Profile' },
   { href: '/signin.html', label: 'Sign In' },
   { href: '/register.html', label: 'Register' },
 ];
