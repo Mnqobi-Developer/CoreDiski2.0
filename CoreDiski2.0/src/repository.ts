@@ -23,6 +23,7 @@ const USERS_KEY = 'corediski_users';
 const SESSION_KEY = 'corediski_session';
 const ORDERS_KEY = 'corediski_orders';
 const PAYMENT_TRANSACTIONS_KEY = 'corediski_payment_transactions';
+const YOCO_PUBLIC_KEY = 'pk_test_corediski_yoco';
 
 const randomId = () =>
   typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -456,26 +457,35 @@ export const adminRepository = {
 };
 
 
-export const paymentGateway = {
+export const yocoGateway = {
   async processPayment(input: PaymentGatewayRequest): Promise<PaymentGatewayResult> {
-    if (input.amount <= 0) {
-      return { success: false, message: 'Payment amount must be greater than zero.' };
+    if (input.provider !== 'yoco') {
+      return { success: false, provider: 'yoco', message: 'Unsupported payment provider.' };
     }
 
-    if (input.method === 'card') {
+    if (input.amount <= 0) {
+      return { success: false, provider: 'yoco', message: 'Payment amount must be greater than zero.' };
+    }
+
+    if (input.method === 'yoco_card') {
       const cardNumber = input.cardNumber?.trim() ?? '';
       const cvc = input.cvc?.trim() ?? '';
 
       if (!isValidCardNumber(cardNumber) || cvc.length < 3) {
-        return { success: false, message: 'Card payment declined. Check card details and try again.' };
+        return { success: false, provider: 'yoco', message: 'Yoco card payment declined. Check card details and try again.' };
       }
 
       if (cardNumber.replace(/\s+/g, '').endsWith('0000')) {
-        return { success: false, message: 'Card issuer declined the transaction.' };
+        return { success: false, provider: 'yoco', message: 'Card issuer declined the Yoco transaction.' };
       }
     }
 
-    const transactionId = `PAY-${Date.now()}-${Math.random().toString(16).slice(2, 8).toUpperCase()}`;
+    if (input.method === 'yoco_eft' && !input.customerEmail.includes('@')) {
+      return { success: false, provider: 'yoco', message: 'A valid email is required for Yoco EFT payments.' };
+    }
+
+    const checkoutId = `yoco_chk_${Date.now()}_${Math.random().toString(16).slice(2, 8)}`;
+    const transactionId = `yoco_pay_${Date.now()}_${Math.random().toString(16).slice(2, 8)}`;
     const transactions = readJsonArray<{
       id: string;
       amount: number;
@@ -484,6 +494,9 @@ export const paymentGateway = {
       customerEmail: string;
       createdAt: string;
       status: 'approved';
+      provider: 'yoco';
+      checkoutId: string;
+      publicKey: string;
     }>(PAYMENT_TRANSACTIONS_KEY);
 
     const record = {
@@ -494,14 +507,19 @@ export const paymentGateway = {
       customerEmail: input.customerEmail.trim().toLowerCase(),
       createdAt: new Date().toISOString(),
       status: 'approved' as const,
+      provider: 'yoco' as const,
+      checkoutId,
+      publicKey: YOCO_PUBLIC_KEY,
     };
 
     localStorage.setItem(PAYMENT_TRANSACTIONS_KEY, JSON.stringify([record, ...transactions]));
 
     return {
       success: true,
+      provider: 'yoco',
+      checkoutId,
       transactionId,
-      message: `Payment approved (${transactionId}).`,
+      message: `Yoco payment approved (${transactionId}).`,
     };
   },
 };

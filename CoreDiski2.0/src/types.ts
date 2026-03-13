@@ -61,11 +61,12 @@ export type OrderItem = {
   unitPrice: number;
 };
 
-export type PaymentMethod = 'card' | 'paypal' | 'gpay';
+export type PaymentMethod = 'yoco_card' | 'yoco_eft';
 
 export type PaymentGatewayRequest = {
   amount: number;
   currency: 'ZAR';
+  provider: 'yoco';
   method: PaymentMethod;
   customerEmail: string;
   cardNumber?: string;
@@ -74,6 +75,8 @@ export type PaymentGatewayRequest = {
 
 export type PaymentGatewayResult = {
   success: boolean;
+  provider: 'yoco';
+  checkoutId?: string;
   transactionId?: string;
   message: string;
 };

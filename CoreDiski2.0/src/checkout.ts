@@ -2,7 +2,7 @@ import './checkout.css';
 import './nav-brand.css';
 import { requireSignedIn } from './auth';
 import { renderNav } from './nav';
-import { authRepository, cartRepository, orderRepository, paymentGateway, shirtRepository } from './repository';
+import { authRepository, cartRepository, orderRepository, shirtRepository, yocoGateway } from './repository';
 import type { PaymentMethod } from './types';
 
 const app = document.querySelector<HTMLDivElement>('#app');
@@ -89,9 +89,8 @@ const renderPage = async () => {
             <article class="card">
               <h3>Payment Information</h3>
               <div class="segment">
-                <button type="button" class="payment-toggle active" data-method="card">Credit Card</button>
-                <button type="button" class="payment-toggle" data-method="paypal">PayPal</button>
-                <button type="button" class="payment-toggle" data-method="gpay">G Pay</button>
+                <button type="button" class="payment-toggle active" data-method="yoco_card">Yoco Card</button>
+                <button type="button" class="payment-toggle" data-method="yoco_eft">Yoco Instant EFT</button>
               </div>
 
               <form id="checkout-form">
@@ -151,7 +150,7 @@ const renderPage = async () => {
     </div>
   `;
 
-  let method: PaymentMethod = 'card';
+  let method: PaymentMethod = 'yoco_card';
   const form = app.querySelector<HTMLFormElement>('#checkout-form');
   const status = app.querySelector<HTMLParagraphElement>('#status');
   const toggles = app.querySelectorAll<HTMLButtonElement>('.payment-toggle');
@@ -171,7 +170,7 @@ const renderPage = async () => {
 
   toggles.forEach((button) => {
     button.addEventListener('click', () => {
-      method = (button.dataset.method as PaymentMethod) || 'card';
+      method = (button.dataset.method as PaymentMethod) || 'yoco_card';
       toggles.forEach((entry) => entry.classList.remove('active'));
       button.classList.add('active');
     });
@@ -195,7 +194,7 @@ const renderPage = async () => {
       return;
     }
 
-    if (method === 'card') {
+    if (method === 'yoco_card') {
       const cardNumber = String(formData.get('cardNumber') || '').replace(/\s+/g, '');
       const cvc = String(formData.get('cvc') || '').trim();
       if (cardNumber.length < 12 || cvc.length < 3) {
@@ -212,13 +211,14 @@ const renderPage = async () => {
     const cardNumber = String(formData.get('cardNumber') || '').replace(/\s+/g, '');
     const cvc = String(formData.get('cvc') || '').trim();
 
-    const paymentResult = await paymentGateway.processPayment({
+    const paymentResult = await yocoGateway.processPayment({
       amount: subtotal,
       currency: 'ZAR',
+      provider: 'yoco',
       method,
       customerEmail: user.email,
-      cardNumber: method === 'card' ? cardNumber : undefined,
-      cvc: method === 'card' ? cvc : undefined,
+      cardNumber: method === 'yoco_card' ? cardNumber : undefined,
+      cvc: method === 'yoco_card' ? cvc : undefined,
     });
 
     if (!paymentResult.success || !paymentResult.transactionId) {
@@ -251,7 +251,7 @@ const renderPage = async () => {
 
     if (status) {
       status.className = 'status success';
-      status.textContent = `Order #${result.order?.id.slice(0, 8)} placed successfully. Ref: ${paymentResult.transactionId}`;
+      status.textContent = `Order #${result.order?.id.slice(0, 8)} paid via Yoco. Ref: ${paymentResult.transactionId}`;
     }
 
     setTimeout(() => {
