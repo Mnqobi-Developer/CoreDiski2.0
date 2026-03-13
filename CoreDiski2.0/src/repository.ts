@@ -13,6 +13,7 @@ import type {
   PaymentGatewayRequest,
   PaymentGatewayResult,
   PaymentMethod,
+  OutgoingEmail,
 } from './types';
 
 const SHIRTS_KEY = 'corediski_shirts';
@@ -25,6 +26,7 @@ const ORDERS_KEY = 'corediski_orders';
 const PAYMENT_TRANSACTIONS_KEY = 'corediski_payment_transactions';
 const YOCO_PUBLIC_KEY = 'pk_test_corediski_yoco';
 const YOCO_PAYMENT_PAGE_URL = 'https://pay.yoco.com/corediski';
+const EMAIL_OUTBOX_KEY = 'corediski_email_outbox';
 
 const randomId = () =>
   typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -140,6 +142,26 @@ const readSession = (): AuthSession | null => {
   }
 };
 
+const buildVerificationUrl = (token: string) =>
+  `${window.location.origin}/verify-email.html?token=${encodeURIComponent(token)}`;
+
+const emailService = {
+  async sendVerificationEmail(fullName: string, email: string, token: string): Promise<OutgoingEmail> {
+    const verificationUrl = buildVerificationUrl(token);
+    const message: OutgoingEmail = {
+      id: randomId(),
+      to: email,
+      subject: 'Verify your Core Diski account',
+      body: `Hi ${fullName}, verify your account: ${verificationUrl}`,
+      sentAt: new Date().toISOString(),
+    };
+
+    const outbox = readJsonArray<OutgoingEmail>(EMAIL_OUTBOX_KEY);
+    localStorage.setItem(EMAIL_OUTBOX_KEY, JSON.stringify([message, ...outbox]));
+    return message;
+  },
+};
+
 
 
 const readUsers = (): UserAccount[] => {
@@ -156,6 +178,7 @@ const readUsers = (): UserAccount[] => {
     password: 'Admin@12345',
     createdAt: new Date().toISOString(),
     isAdmin: true,
+    emailVerified: true,
   };
 
   const seeded = [adminUser, ...users];
@@ -314,6 +337,7 @@ export const authRepository = {
       return { error: 'An account with this email already exists.' };
     }
 
+    const verificationToken = randomId();
     const user: UserAccount = {
       id: randomId(),
       fullName: fullName.trim(),
@@ -321,10 +345,13 @@ export const authRepository = {
       password,
       createdAt: new Date().toISOString(),
       isAdmin: false,
+      emailVerified: false,
+      emailVerificationToken: verificationToken,
+      emailVerificationSentAt: new Date().toISOString(),
     };
 
     writeUsers([user, ...users]);
-    writeSession({ userId: user.id, signedInAt: new Date().toISOString() });
+    await emailService.sendVerificationEmail(user.fullName, user.email, verificationToken);
 
     return { user };
   },
@@ -336,6 +363,10 @@ export const authRepository = {
 
     if (!user) {
       return { error: 'Invalid email or password.' };
+    }
+
+    if (!user.emailVerified && !user.isAdmin) {
+      return { error: 'Please verify your email before signing in.' };
     }
 
     writeSession({ userId: user.id, signedInAt: new Date().toISOString() });
@@ -389,6 +420,58 @@ export const authRepository = {
 
     writeUsers(users.map((entry) => (entry.id === user.id ? updatedUser : entry)));
     return { user: updatedUser };
+  },
+
+  async verifyEmail(token: string): Promise<{ user?: UserAccount; error?: string }> {
+    const trimmedToken = token.trim();
+
+    if (!trimmedToken) {
+      return { error: 'Invalid verification token.' };
+    }
+
+    const users = readUsers();
+    const user = users.find((entry) => entry.emailVerificationToken === trimmedToken);
+
+    if (!user) {
+      return { error: 'Verification link is invalid or expired.' };
+    }
+
+    const updatedUser: UserAccount = {
+      ...user,
+      emailVerified: true,
+      emailVerificationToken: '',
+    };
+
+    writeUsers(users.map((entry) => (entry.id === user.id ? updatedUser : entry)));
+    writeSession({ userId: updatedUser.id, signedInAt: new Date().toISOString() });
+
+    return { user: updatedUser };
+  },
+
+  async resendVerificationEmail(email: string): Promise<{ ok?: boolean; error?: string }> {
+    const users = readUsers();
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = users.find((entry) => entry.email.toLowerCase() === normalizedEmail);
+
+    if (!user) {
+      return { error: 'Unable to find an account with that email.' };
+    }
+
+    if (user.emailVerified || user.isAdmin) {
+      return { ok: true };
+    }
+
+    const verificationToken = randomId();
+    const updatedUser: UserAccount = {
+      ...user,
+      emailVerificationToken: verificationToken,
+      emailVerificationSentAt: new Date().toISOString(),
+    };
+
+    writeUsers(users.map((entry) => (entry.id === user.id ? updatedUser : entry)));
+    await emailService.sendVerificationEmail(updatedUser.fullName, updatedUser.email, verificationToken);
+
+    return { ok: true };
   },
 
   async isSignedIn(): Promise<boolean> {

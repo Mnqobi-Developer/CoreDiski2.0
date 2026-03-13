@@ -13,6 +13,7 @@ export default defineConfig({
         wishlist: resolve(__dirname, 'wishlist.html'),
         signin: resolve(__dirname, 'signin.html'),
         register: resolve(__dirname, 'register.html'),
+        verifyEmail: resolve(__dirname, 'verify-email.html'),
         profile: resolve(__dirname, 'profile.html'),
         admin: resolve(__dirname, 'admin.html'),
         adminProducts: resolve(__dirname, 'admin-products.html'),

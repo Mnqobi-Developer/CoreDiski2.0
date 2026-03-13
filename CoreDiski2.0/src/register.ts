@@ -1,6 +1,5 @@
 import './auth-pages.css';
 import './nav-brand.css';
-import { getRedirectTarget } from './auth';
 import { renderNav } from './nav';
 import { authRepository } from './repository';
 
@@ -9,8 +8,6 @@ const app = document.querySelector<HTMLDivElement>('#app');
 if (!app) {
   throw new Error('App container not found');
 }
-
-const redirectTarget = getRedirectTarget('/profile.html');
 
 app.innerHTML = `
   <div>
@@ -42,7 +39,7 @@ app.innerHTML = `
           <button type="submit">Create Account</button>
         </form>
         <p id="status" class="status"></p>
-        <p class="meta-link">Already have an account? <a href="/signin.html?redirect=${encodeURIComponent(redirectTarget)}">Sign In</a></p>
+        <p class="meta-link">Already have an account? <a href="/signin.html">Sign In</a></p>
       </section>
     </main>
   </div>
@@ -69,8 +66,10 @@ form?.addEventListener('submit', async (event) => {
 
   if (status) {
     status.className = 'status success';
-    status.textContent = 'Account created. Redirecting...';
+    status.textContent = 'Account created. Please verify your email via the link sent before signing in.';
   }
 
-  window.location.href = redirectTarget;
+  setTimeout(() => {
+    window.location.href = `/signin.html?email=${encodeURIComponent(email?.value ?? '')}`;
+  }, 900);
 });

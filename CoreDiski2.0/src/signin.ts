@@ -11,6 +11,7 @@ if (!app) {
 }
 
 const redirectTarget = getRedirectTarget();
+const prefillEmail = new URLSearchParams(window.location.search).get('email') || '';
 
 app.innerHTML = `
   <div>
@@ -31,7 +32,7 @@ app.innerHTML = `
         <p>Sign in to continue shopping.</p>
         <form id="signin-form" class="auth-form">
           <label>Email Address
-            <input id="email" type="email" required placeholder="you@email.com" />
+            <input id="email" type="email" required placeholder="you@email.com" value="${prefillEmail}" />
           </label>
           <label>Password
             <input id="password" type="password" required minlength="8" placeholder="********" />
@@ -39,6 +40,7 @@ app.innerHTML = `
           <button type="submit">Sign In</button>
         </form>
         <p id="status" class="status"></p>
+        <button id="resend-verification" class="resend-link" type="button">Resend verification email</button>
         <p class="meta-link">Don't have an account? <a href="/register.html?redirect=${encodeURIComponent(redirectTarget)}">Create Account</a></p>
       </section>
     </main>
@@ -70,4 +72,33 @@ form?.addEventListener('submit', async (event) => {
 
   const target = result.user?.isAdmin && redirectTarget === '/' ? '/admin.html' : redirectTarget;
   window.location.href = target;
+});
+
+const resendButton = document.querySelector<HTMLButtonElement>('#resend-verification');
+
+resendButton?.addEventListener('click', async () => {
+  const targetEmail = email?.value ?? '';
+
+  if (!targetEmail) {
+    if (status) {
+      status.className = 'status error';
+      status.textContent = 'Enter your email first, then resend verification.';
+    }
+    return;
+  }
+
+  const result = await authRepository.resendVerificationEmail(targetEmail);
+
+  if (result.error) {
+    if (status) {
+      status.className = 'status error';
+      status.textContent = result.error;
+    }
+    return;
+  }
+
+  if (status) {
+    status.className = 'status success';
+    status.textContent = 'Verification email sent. Check your inbox.';
+  }
 });

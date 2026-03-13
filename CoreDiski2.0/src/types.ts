@@ -44,6 +44,9 @@ export type UserAccount = {
   emailPreferences?: string;
   createdAt: string;
   isAdmin?: boolean;
+  emailVerified?: boolean;
+  emailVerificationToken?: string;
+  emailVerificationSentAt?: string;
 };
 
 export type AuthSession = {
@@ -95,4 +98,13 @@ export type Order = {
   status: 'pending' | 'paid';
   createdAt: string;
   items: OrderItem[];
+};
+
+
+export type OutgoingEmail = {
+  id: string;
+  to: string;
+  subject: string;
+  body: string;
+  sentAt: string;
 };
