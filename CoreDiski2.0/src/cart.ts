@@ -98,7 +98,7 @@ const renderPage = async () => {
   `;
 
   app.querySelector('.checkout')?.addEventListener('click', () => {
-    window.alert('Checkout flow coming next. You are signed in and ready to purchase.');
+    window.location.href = '/checkout.html';
   });
 
   app.querySelector('#clear-cart')?.addEventListener('click', async () => {

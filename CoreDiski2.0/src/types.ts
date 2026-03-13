@@ -53,3 +53,27 @@ export type AuthSession = {
 
 
 export type AdminUserRecord = Omit<UserAccount, 'password'>;
+
+export type OrderItem = {
+  shirtId: string;
+  size: ShirtSize;
+  quantity: number;
+  unitPrice: number;
+};
+
+export type Order = {
+  id: string;
+  userId: string;
+  customerName: string;
+  customerEmail: string;
+  shippingAddress: string;
+  billingAddress: string;
+  shippingMethod: string;
+  paymentMethod: 'card' | 'paypal' | 'gpay';
+  subtotal: number;
+  shippingCost: number;
+  total: number;
+  status: 'pending' | 'paid';
+  createdAt: string;
+  items: OrderItem[];
+};
