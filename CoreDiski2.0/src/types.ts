@@ -43,9 +43,13 @@ export type UserAccount = {
   address?: string;
   emailPreferences?: string;
   createdAt: string;
+  isAdmin?: boolean;
 };
 
 export type AuthSession = {
   userId: string;
   signedInAt: string;
 };
+
+
+export type AdminUserRecord = Omit<UserAccount, 'password'>;
