@@ -1,4 +1,5 @@
 import './profile.css';
+import './nav-brand.css';
 import { requireSignedIn } from './auth';
 import { renderNav } from './nav';
 import { authRepository } from './repository';
@@ -40,7 +41,7 @@ const renderPage = async () => {
     <div class="profile-page">
       <header class="topbar">
         <div class="brand">
-          <div class="brand-logo">CD</div>
+          <img class="brand-logo" src="/logo.svg" alt="Core Diski logo" />
           <div>
             <p class="brand-name">CORE DISKI</p>
             <p class="brand-tag">Authentic Football Shirts</p>
