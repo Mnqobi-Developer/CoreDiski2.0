@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Core Diski logo</title>
+  <desc id="desc">Circular crest logo with football player silhouette and Core Diski text</desc>
+  <defs>
+    <radialGradient id="cream" cx="50%" cy="45%" r="60%">
+      <stop offset="0%" stop-color="#f5f0dd"/>
+      <stop offset="100%" stop-color="#e5dcc2"/>
+    </radialGradient>
+  </defs>
+  <circle cx="256" cy="256" r="246" fill="#10243f"/>
+  <circle cx="256" cy="256" r="226" fill="url(#cream)"/>
+  <circle cx="256" cy="256" r="146" fill="none" stroke="#1d6a45" stroke-width="18"/>
+  <circle cx="256" cy="256" r="102" fill="none" stroke="#193454" stroke-width="10"/>
+  <circle cx="225" cy="265" r="72" fill="#1d6a45"/>
+  <circle cx="290" cy="284" r="66" fill="#efe7cf"/>
+  <path fill="#1d6a45" d="M274 150c-14 0-24 10-24 24 0 13 10 24 24 24 13 0 24-11 24-24 0-14-11-24-24-24zm-31 54-35 54-20 52 24 11 17-39 16-19 12 57 32-6-8-66 16-17 15 40 26-8-24-71-29-26-42-8z"/>
+  <circle cx="325" cy="330" r="12" fill="#1d6a45"/>
+  <text x="256" y="88" text-anchor="middle" fill="#10243f" font-size="52" font-weight="700" letter-spacing="4" font-family="Georgia, serif">CORE DISKI</text>
+  <text x="256" y="450" text-anchor="middle" fill="#10243f" font-size="56" font-weight="700" letter-spacing="5" font-family="Georgia, serif">EST 2022</text>
+</svg>

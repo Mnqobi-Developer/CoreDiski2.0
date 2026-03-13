@@ -1,4 +1,5 @@
 import './product.css';
+import './nav-brand.css';
 import { requireSignedIn } from './auth';
 import { renderNav } from './nav';
 import { cartRepository, shirtRepository, wishlistRepository } from './repository';
@@ -31,7 +32,7 @@ const renderNotFound = () => {
     <div class="product-page">
       <header class="topbar">
         <div class="brand">
-          <div class="brand-logo">CD</div>
+          <img class="brand-logo" src="/logo.svg" alt="Core Diski logo" />
           <div>
             <p class="brand-name">CORE DISKI</p>
             <p class="brand-tag">Authentic Football Shirts</p>
@@ -64,7 +65,7 @@ const renderProduct = async () => {
     <div class="product-page">
       <header class="topbar">
         <div class="brand">
-          <div class="brand-logo">CD</div>
+          <img class="brand-logo" src="/logo.svg" alt="Core Diski logo" />
           <div>
             <p class="brand-name">CORE DISKI</p>
             <p class="brand-tag">Authentic Football Shirts</p>
