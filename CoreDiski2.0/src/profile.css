@@ -22,12 +22,10 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.9rem 2rem;
-  background: linear-gradient(135deg, #153a2d, #1f4a3a 40%, #245741);
+  padding: 1rem 2rem;
+  background: #1f4a3a;
   color: #fff;
   gap: 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
-  box-shadow: 0 8px 24px rgba(10, 28, 22, 0.25);
 }
 
 .brand {
@@ -37,13 +35,13 @@ body {
 }
 
 .brand-logo {
-  width: 52px;
-  height: 52px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.8);
-  object-fit: cover;
-  background: #f2f0ec;
-  box-shadow: 0 6px 16px rgba(7, 20, 16, 0.32);
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  display: grid;
+  place-items: center;
+  font-weight: 700;
 }
 
 .brand-name {
@@ -61,39 +59,21 @@ body {
 
 .nav-icons {
   display: flex;
-  gap: 0.55rem;
+  gap: 0.7rem;
   flex-wrap: wrap;
 }
 
 .nav-icons a {
-  color: rgba(255, 255, 255, 0.88);
+  color: rgba(255, 255, 255, 0.85);
   text-decoration: none;
   font-weight: 600;
-  padding: 0.42rem 0.78rem;
+  padding: 0.35rem 0.6rem;
   border-radius: 999px;
-  border: 1px solid transparent;
-  transition: transform 180ms ease, background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease,
-    color 180ms ease;
-}
-
-.nav-icons a:hover {
-  transform: translateY(-1px);
-  background: rgba(255, 255, 255, 0.14);
-  border-color: rgba(255, 255, 255, 0.24);
-  box-shadow: 0 8px 14px rgba(8, 24, 18, 0.2);
-  color: #fff;
-}
-
-.nav-icons a:focus-visible {
-  outline: 2px solid #f8eec8;
-  outline-offset: 2px;
 }
 
 .nav-icons a[aria-current='page'] {
-  background: #f8eec8;
-  border-color: #f8eec8;
-  color: #1d3e33;
-  box-shadow: 0 8px 16px rgba(9, 22, 17, 0.22);
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
 }
 
 .profile-layout {
@@ -150,24 +130,8 @@ body {
   color: #fff;
 }
 
-.profile-hero {
-  text-align: center;
-  margin-bottom: 1rem;
-}
-
-.hero-logo {
-  width: 108px;
-  height: 108px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 3px solid rgba(31, 74, 58, 0.24);
-  background: #f8f4e7;
-  box-shadow: 0 10px 20px rgba(31, 74, 58, 0.18);
-  margin-bottom: 0.65rem;
-}
-
 .content h1 {
-  margin: 0;
+  margin: 0 0 1rem;
   font-size: 2.2rem;
 }
 

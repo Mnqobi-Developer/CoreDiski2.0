@@ -40,7 +40,7 @@ const renderPage = async () => {
     <div class="profile-page">
       <header class="topbar">
         <div class="brand">
-          <img class="brand-logo" src="/favicon.svg" alt="Core Diski logo" />
+          <div class="brand-logo">CD</div>
           <div>
             <p class="brand-name">CORE DISKI</p>
             <p class="brand-tag">Authentic Football Shirts</p>
@@ -62,10 +62,7 @@ const renderPage = async () => {
         </aside>
 
         <section class="content">
-          <div class="profile-hero">
-            <img class="hero-logo" src="/favicon.svg" alt="Core Diski crest" />
-            <h1>My Profile</h1>
-          </div>
+          <h1>My Profile</h1>
 
           <article class="profile-card">
             <div class="avatar">${initials(user.fullName)}</div>
