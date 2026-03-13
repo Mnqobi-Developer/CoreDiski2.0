@@ -24,6 +24,7 @@ const SESSION_KEY = 'corediski_session';
 const ORDERS_KEY = 'corediski_orders';
 const PAYMENT_TRANSACTIONS_KEY = 'corediski_payment_transactions';
 const YOCO_PUBLIC_KEY = 'pk_test_corediski_yoco';
+const YOCO_PAYMENT_PAGE_URL = 'https://pay.yoco.com/corediski';
 
 const randomId = () =>
   typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -467,21 +468,12 @@ export const yocoGateway = {
       return { success: false, provider: 'yoco', message: 'Payment amount must be greater than zero.' };
     }
 
-    if (input.method === 'yoco_card') {
-      const cardNumber = input.cardNumber?.trim() ?? '';
-      const cvc = input.cvc?.trim() ?? '';
-
-      if (!isValidCardNumber(cardNumber) || cvc.length < 3) {
-        return { success: false, provider: 'yoco', message: 'Yoco card payment declined. Check card details and try again.' };
-      }
-
-      if (cardNumber.replace(/\s+/g, '').endsWith('0000')) {
-        return { success: false, provider: 'yoco', message: 'Card issuer declined the Yoco transaction.' };
-      }
+    if (input.method !== 'yoco_hosted') {
+      return { success: false, provider: 'yoco', message: 'Only Yoco hosted checkout is supported.' };
     }
 
-    if (input.method === 'yoco_eft' && !input.customerEmail.includes('@')) {
-      return { success: false, provider: 'yoco', message: 'A valid email is required for Yoco EFT payments.' };
+    if (!input.customerEmail.includes('@')) {
+      return { success: false, provider: 'yoco', message: 'A valid email is required for Yoco checkout.' };
     }
 
     const checkoutId = `yoco_chk_${Date.now()}_${Math.random().toString(16).slice(2, 8)}`;
@@ -493,9 +485,10 @@ export const yocoGateway = {
       method: PaymentMethod;
       customerEmail: string;
       createdAt: string;
-      status: 'approved';
+      status: 'initiated';
       provider: 'yoco';
       checkoutId: string;
+      checkoutUrl: string;
       publicKey: string;
     }>(PAYMENT_TRANSACTIONS_KEY);
 
@@ -506,9 +499,10 @@ export const yocoGateway = {
       method: input.method,
       customerEmail: input.customerEmail.trim().toLowerCase(),
       createdAt: new Date().toISOString(),
-      status: 'approved' as const,
+      status: 'initiated' as const,
       provider: 'yoco' as const,
       checkoutId,
+      checkoutUrl: YOCO_PAYMENT_PAGE_URL,
       publicKey: YOCO_PUBLIC_KEY,
     };
 
@@ -518,11 +512,13 @@ export const yocoGateway = {
       success: true,
       provider: 'yoco',
       checkoutId,
+      checkoutUrl: YOCO_PAYMENT_PAGE_URL,
       transactionId,
-      message: `Yoco payment approved (${transactionId}).`,
+      message: 'Redirecting to Yoco secure checkout.',
     };
   },
 };
+
 
 
 export const orderRepository = {
@@ -545,6 +541,7 @@ export const orderRepository = {
     shippingMethod: string;
     paymentMethod: PaymentMethod;
     paymentReference: string;
+    status?: Order['status'];
   }): Promise<{ order?: Order; error?: string }> {
     const session = readSession();
 
@@ -595,7 +592,7 @@ export const orderRepository = {
       subtotal,
       shippingCost,
       total: subtotal + shippingCost,
-      status: 'paid',
+      status: input.status ?? 'paid',
       createdAt: new Date().toISOString(),
       items: validItems,
     };

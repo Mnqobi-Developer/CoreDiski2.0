@@ -51,7 +51,6 @@ export type AuthSession = {
   signedInAt: string;
 };
 
-
 export type AdminUserRecord = Omit<UserAccount, 'password'>;
 
 export type OrderItem = {
@@ -61,7 +60,7 @@ export type OrderItem = {
   unitPrice: number;
 };
 
-export type PaymentMethod = 'yoco_card' | 'yoco_eft';
+export type PaymentMethod = 'yoco_hosted';
 
 export type PaymentGatewayRequest = {
   amount: number;
@@ -69,14 +68,13 @@ export type PaymentGatewayRequest = {
   provider: 'yoco';
   method: PaymentMethod;
   customerEmail: string;
-  cardNumber?: string;
-  cvc?: string;
 };
 
 export type PaymentGatewayResult = {
   success: boolean;
   provider: 'yoco';
   checkoutId?: string;
+  checkoutUrl?: string;
   transactionId?: string;
   message: string;
 };

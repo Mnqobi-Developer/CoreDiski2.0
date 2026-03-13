@@ -88,10 +88,8 @@ const renderPage = async () => {
 
             <article class="card">
               <h3>Payment Information</h3>
-              <div class="segment">
-                <button type="button" class="payment-toggle active" data-method="yoco_card">Yoco Card</button>
-                <button type="button" class="payment-toggle" data-method="yoco_eft">Yoco Instant EFT</button>
-              </div>
+              <p class="method-pill">🔒 Yoco Secure Checkout</p>
+              <p class="muted">Yoco is the only payment method available. You will be redirected to <strong>pay.yoco.com/corediski</strong> to complete payment securely.</p>
 
               <form id="checkout-form">
                 <div class="form-grid">
@@ -107,16 +105,8 @@ const renderPage = async () => {
                     Billing address
                     <textarea name="billingAddress"></textarea>
                   </label>
-                  <label>
-                    Card number
-                    <input name="cardNumber" placeholder="1234 5678 9012 3456" minlength="12" />
-                  </label>
-                  <label>
-                    CVC
-                    <input name="cvc" placeholder="123" minlength="3" maxlength="4" />
-                  </label>
                 </div>
-                <button type="submit" class="complete-btn">Complete Order</button>
+                <button type="submit" class="complete-btn">Continue to Yoco</button>
                 <p class="status" id="status"></p>
               </form>
             </article>
@@ -150,10 +140,9 @@ const renderPage = async () => {
     </div>
   `;
 
-  let method: PaymentMethod = 'yoco_card';
+  const method: PaymentMethod = 'yoco_hosted';
   const form = app.querySelector<HTMLFormElement>('#checkout-form');
   const status = app.querySelector<HTMLParagraphElement>('#status');
-  const toggles = app.querySelectorAll<HTMLButtonElement>('.payment-toggle');
   const sameBilling = app.querySelector<HTMLInputElement>('input[name="sameBilling"]');
   const billingWrap = app.querySelector<HTMLElement>('#billing-wrap');
 
@@ -166,14 +155,6 @@ const renderPage = async () => {
     if (billingWrap) {
       billingWrap.hidden = isChecked;
     }
-  });
-
-  toggles.forEach((button) => {
-    button.addEventListener('click', () => {
-      method = (button.dataset.method as PaymentMethod) || 'yoco_card';
-      toggles.forEach((entry) => entry.classList.remove('active'));
-      button.classList.add('active');
-    });
   });
 
   form?.addEventListener('submit', async (event) => {
@@ -194,22 +175,7 @@ const renderPage = async () => {
       return;
     }
 
-    if (method === 'yoco_card') {
-      const cardNumber = String(formData.get('cardNumber') || '').replace(/\s+/g, '');
-      const cvc = String(formData.get('cvc') || '').trim();
-      if (cardNumber.length < 12 || cvc.length < 3) {
-        if (status) {
-          status.className = 'status error';
-          status.textContent = 'Please enter a valid card number and CVC.';
-        }
-        return;
-      }
-    }
-
     submitButton?.setAttribute('disabled', 'true');
-
-    const cardNumber = String(formData.get('cardNumber') || '').replace(/\s+/g, '');
-    const cvc = String(formData.get('cvc') || '').trim();
 
     const paymentResult = await yocoGateway.processPayment({
       amount: subtotal,
@@ -217,11 +183,9 @@ const renderPage = async () => {
       provider: 'yoco',
       method,
       customerEmail: user.email,
-      cardNumber: method === 'yoco_card' ? cardNumber : undefined,
-      cvc: method === 'yoco_card' ? cvc : undefined,
     });
 
-    if (!paymentResult.success || !paymentResult.transactionId) {
+    if (!paymentResult.success || !paymentResult.transactionId || !paymentResult.checkoutUrl) {
       if (status) {
         status.className = 'status error';
         status.textContent = paymentResult.message;
@@ -238,6 +202,7 @@ const renderPage = async () => {
       shippingMethod: 'free-standard',
       paymentMethod: method,
       paymentReference: paymentResult.transactionId,
+      status: 'pending',
     });
 
     if (result.error) {
@@ -251,12 +216,12 @@ const renderPage = async () => {
 
     if (status) {
       status.className = 'status success';
-      status.textContent = `Order #${result.order?.id.slice(0, 8)} paid via Yoco. Ref: ${paymentResult.transactionId}`;
+      status.textContent = 'Redirecting you to Yoco secure checkout...';
     }
 
     setTimeout(() => {
-      window.location.href = '/profile.html';
-    }, 1000);
+      window.location.href = paymentResult.checkoutUrl as string;
+    }, 300);
   });
 };
 
