@@ -23,3 +23,20 @@ body { margin: 0; background: radial-gradient(circle at 1px 1px, #e9e4d6 1px, tr
 .status { min-height: 1.2rem; margin: 0.3rem 0 0; text-align: center; }
 .status.error { color: #a2342a; }
 .status.success { color: #1f4e44; }
+
+@media (max-width: 640px) {
+  .auth-wrap {
+    padding: 1rem;
+    min-height: calc(100vh - 88px);
+  }
+
+  .auth-card {
+    padding: 1rem;
+    border-radius: 12px;
+  }
+
+  .auth-form button {
+    font-size: 1rem;
+  }
+}
+

@@ -252,3 +252,29 @@ body {
     font-size: 1rem;
   }
 }
+
+@media (max-width: 640px) {
+  .content {
+    padding: 1rem;
+  }
+
+  .hero {
+    padding: 2rem 0 1.4rem;
+  }
+
+  .search-row,
+  .newsletter-row {
+    flex-direction: column;
+    border-width: 2px;
+  }
+
+  .search-row button,
+  .newsletter-row button {
+    width: 100%;
+  }
+
+  .about {
+    padding: 1rem;
+  }
+}
+
