@@ -298,3 +298,24 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 640px) {
+  .profile-page {
+    padding: 1rem;
+  }
+
+  .profile-card {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+
+  .profile-card .primary-btn {
+    justify-self: center;
+  }
+
+  .profile-form,
+  .card {
+    padding: 0.9rem;
+  }
+}
+

@@ -23,3 +23,37 @@ h1 { text-align: center; font-family: Georgia, 'Times New Roman', serif; font-si
 .actions { display: flex; gap: 0.55rem; margin-top: 0.4rem; }
 .actions button { border: 1px solid #ccc4b7; border-radius: 8px; padding: 0.45rem 0.7rem; background: #fff; cursor: pointer; }
 .empty { text-align: center; margin: 1rem 0; }
+
+@media (max-width: 760px) {
+  .wishlist-item {
+    grid-template-columns: 90px 1fr;
+  }
+
+  .wishlist-item img {
+    width: 90px;
+    height: 120px;
+  }
+}
+
+@media (max-width: 640px) {
+  .wishlist-page {
+    padding: 1rem;
+  }
+
+  .wishlist-shell {
+    padding: 0.8rem;
+  }
+
+  .wishlist-item h3 {
+    font-size: 1.1rem;
+  }
+
+  .actions {
+    flex-wrap: wrap;
+  }
+
+  .actions button {
+    flex: 1 1 130px;
+  }
+}
+

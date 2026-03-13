@@ -275,3 +275,27 @@ body {
     height: 80px;
   }
 }
+
+@media (max-width: 640px) {
+  .content {
+    padding: 0.9rem;
+  }
+
+  .thumbs {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .thumbs img {
+    height: 70px;
+  }
+
+  .top-section,
+  .description {
+    gap: 0.85rem;
+  }
+
+  .related-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
+}
+
