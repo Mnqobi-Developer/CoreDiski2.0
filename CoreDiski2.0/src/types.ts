@@ -61,6 +61,23 @@ export type OrderItem = {
   unitPrice: number;
 };
 
+export type PaymentMethod = 'card' | 'paypal' | 'gpay';
+
+export type PaymentGatewayRequest = {
+  amount: number;
+  currency: 'ZAR';
+  method: PaymentMethod;
+  customerEmail: string;
+  cardNumber?: string;
+  cvc?: string;
+};
+
+export type PaymentGatewayResult = {
+  success: boolean;
+  transactionId?: string;
+  message: string;
+};
+
 export type Order = {
   id: string;
   userId: string;
@@ -69,7 +86,8 @@ export type Order = {
   shippingAddress: string;
   billingAddress: string;
   shippingMethod: string;
-  paymentMethod: 'card' | 'paypal' | 'gpay';
+  paymentMethod: PaymentMethod;
+  paymentReference: string;
   subtotal: number;
   shippingCost: number;
   total: number;

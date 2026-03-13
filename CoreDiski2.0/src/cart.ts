@@ -10,7 +10,7 @@ if (!app) {
   throw new Error('App container not found');
 }
 
-const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+const money = new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 });
 
 const renderPage = async () => {
   const signedIn = await requireSignedIn();

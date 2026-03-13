@@ -2,7 +2,8 @@ import './checkout.css';
 import './nav-brand.css';
 import { requireSignedIn } from './auth';
 import { renderNav } from './nav';
-import { authRepository, cartRepository, orderRepository, shirtRepository } from './repository';
+import { authRepository, cartRepository, orderRepository, paymentGateway, shirtRepository } from './repository';
+import type { PaymentMethod } from './types';
 
 const app = document.querySelector<HTMLDivElement>('#app');
 
@@ -10,9 +11,7 @@ if (!app) {
   throw new Error('App container not found');
 }
 
-const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
-
-type PaymentMethod = 'card' | 'paypal' | 'gpay';
+const money = new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 });
 
 const renderPage = async () => {
   const signedIn = await requireSignedIn();
@@ -210,6 +209,27 @@ const renderPage = async () => {
 
     submitButton?.setAttribute('disabled', 'true');
 
+    const cardNumber = String(formData.get('cardNumber') || '').replace(/\s+/g, '');
+    const cvc = String(formData.get('cvc') || '').trim();
+
+    const paymentResult = await paymentGateway.processPayment({
+      amount: subtotal,
+      currency: 'ZAR',
+      method,
+      customerEmail: user.email,
+      cardNumber: method === 'card' ? cardNumber : undefined,
+      cvc: method === 'card' ? cvc : undefined,
+    });
+
+    if (!paymentResult.success || !paymentResult.transactionId) {
+      if (status) {
+        status.className = 'status error';
+        status.textContent = paymentResult.message;
+      }
+      submitButton?.removeAttribute('disabled');
+      return;
+    }
+
     const result = await orderRepository.createCurrentUserOrder({
       customerName: user.fullName,
       customerEmail: user.email,
@@ -217,6 +237,7 @@ const renderPage = async () => {
       billingAddress: same ? shippingAddress : billingAddressInput,
       shippingMethod: 'free-standard',
       paymentMethod: method,
+      paymentReference: paymentResult.transactionId,
     });
 
     if (result.error) {
@@ -230,7 +251,7 @@ const renderPage = async () => {
 
     if (status) {
       status.className = 'status success';
-      status.textContent = `Order #${result.order?.id.slice(0, 8)} placed successfully.`;
+      status.textContent = `Order #${result.order?.id.slice(0, 8)} placed successfully. Ref: ${paymentResult.transactionId}`;
     }
 
     setTimeout(() => {
