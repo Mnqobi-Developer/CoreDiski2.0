@@ -83,7 +83,7 @@ const resetAll = document.querySelector<HTMLButtonElement>('#reset-all');
 const resetSearch = document.querySelector<HTMLButtonElement>('#reset-search');
 const resultsCount = document.querySelector<HTMLParagraphElement>('#results-count');
 
-const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+const money = new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 });
 
 const cardTemplate = (shirt: Shirt) => `
   <article class="shirt-card">
