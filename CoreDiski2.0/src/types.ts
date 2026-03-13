@@ -53,3 +53,45 @@ export type AuthSession = {
 
 
 export type AdminUserRecord = Omit<UserAccount, 'password'>;
+
+export type OrderItem = {
+  shirtId: string;
+  size: ShirtSize;
+  quantity: number;
+  unitPrice: number;
+};
+
+export type PaymentMethod = 'card' | 'paypal' | 'gpay';
+
+export type PaymentGatewayRequest = {
+  amount: number;
+  currency: 'ZAR';
+  method: PaymentMethod;
+  customerEmail: string;
+  cardNumber?: string;
+  cvc?: string;
+};
+
+export type PaymentGatewayResult = {
+  success: boolean;
+  transactionId?: string;
+  message: string;
+};
+
+export type Order = {
+  id: string;
+  userId: string;
+  customerName: string;
+  customerEmail: string;
+  shippingAddress: string;
+  billingAddress: string;
+  shippingMethod: string;
+  paymentMethod: PaymentMethod;
+  paymentReference: string;
+  subtotal: number;
+  shippingCost: number;
+  total: number;
+  status: 'pending' | 'paid';
+  createdAt: string;
+  items: OrderItem[];
+};

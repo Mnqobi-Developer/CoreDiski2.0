@@ -9,6 +9,10 @@ import type {
   UserAccount,
   WishlistItem,
   AdminUserRecord,
+  Order,
+  PaymentGatewayRequest,
+  PaymentGatewayResult,
+  PaymentMethod,
 } from './types';
 
 const SHIRTS_KEY = 'corediski_shirts';
@@ -17,6 +21,8 @@ const CART_KEY = 'corediski_cart';
 const WISHLIST_KEY = 'corediski_wishlist';
 const USERS_KEY = 'corediski_users';
 const SESSION_KEY = 'corediski_session';
+const ORDERS_KEY = 'corediski_orders';
+const PAYMENT_TRANSACTIONS_KEY = 'corediski_payment_transactions';
 
 const randomId = () =>
   typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -28,6 +34,34 @@ const hydrateSeed = (): Shirt[] =>
     ...shirt,
     id: randomId(),
   }));
+
+const isValidCardNumber = (cardNumber: string) => {
+  const digits = cardNumber.replace(/\D/g, '');
+
+  if (digits.length < 12) {
+    return false;
+  }
+
+  let sum = 0;
+  let shouldDouble = false;
+
+  for (let index = digits.length - 1; index >= 0; index -= 1) {
+    let digit = Number(digits[index]);
+
+    if (shouldDouble) {
+      digit *= 2;
+
+      if (digit > 9) {
+        digit -= 9;
+      }
+    }
+
+    sum += digit;
+    shouldDouble = !shouldDouble;
+  }
+
+  return sum % 10 === 0;
+};
 
 const readJsonArray = <T>(key: string): T[] => {
   const raw = localStorage.getItem(key);
@@ -75,6 +109,10 @@ const writeWishlist = (items: WishlistItem[]) => {
 
 const writeUsers = (users: UserAccount[]) => {
   localStorage.setItem(USERS_KEY, JSON.stringify(users));
+};
+
+const writeOrders = (orders: Order[]) => {
+  localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
 };
 
 const writeSession = (session: AuthSession | null) => {
@@ -414,6 +452,141 @@ export const adminRepository = {
     }
 
     return true;
+  },
+};
+
+
+export const paymentGateway = {
+  async processPayment(input: PaymentGatewayRequest): Promise<PaymentGatewayResult> {
+    if (input.amount <= 0) {
+      return { success: false, message: 'Payment amount must be greater than zero.' };
+    }
+
+    if (input.method === 'card') {
+      const cardNumber = input.cardNumber?.trim() ?? '';
+      const cvc = input.cvc?.trim() ?? '';
+
+      if (!isValidCardNumber(cardNumber) || cvc.length < 3) {
+        return { success: false, message: 'Card payment declined. Check card details and try again.' };
+      }
+
+      if (cardNumber.replace(/\s+/g, '').endsWith('0000')) {
+        return { success: false, message: 'Card issuer declined the transaction.' };
+      }
+    }
+
+    const transactionId = `PAY-${Date.now()}-${Math.random().toString(16).slice(2, 8).toUpperCase()}`;
+    const transactions = readJsonArray<{
+      id: string;
+      amount: number;
+      currency: 'ZAR';
+      method: PaymentMethod;
+      customerEmail: string;
+      createdAt: string;
+      status: 'approved';
+    }>(PAYMENT_TRANSACTIONS_KEY);
+
+    const record = {
+      id: transactionId,
+      amount: input.amount,
+      currency: input.currency,
+      method: input.method,
+      customerEmail: input.customerEmail.trim().toLowerCase(),
+      createdAt: new Date().toISOString(),
+      status: 'approved' as const,
+    };
+
+    localStorage.setItem(PAYMENT_TRANSACTIONS_KEY, JSON.stringify([record, ...transactions]));
+
+    return {
+      success: true,
+      transactionId,
+      message: `Payment approved (${transactionId}).`,
+    };
+  },
+};
+
+
+export const orderRepository = {
+  async listCurrentUser(): Promise<Order[]> {
+    const session = readSession();
+
+    if (!session) {
+      return [];
+    }
+
+    const orders = readJsonArray<Order>(ORDERS_KEY);
+    return orders.filter((order) => order.userId === session.userId);
+  },
+
+  async createCurrentUserOrder(input: {
+    customerName: string;
+    customerEmail: string;
+    shippingAddress: string;
+    billingAddress: string;
+    shippingMethod: string;
+    paymentMethod: PaymentMethod;
+    paymentReference: string;
+  }): Promise<{ order?: Order; error?: string }> {
+    const session = readSession();
+
+    if (!session) {
+      return { error: 'You must be signed in to place an order.' };
+    }
+
+    const cartItems = readJsonArray<CartItem>(CART_KEY);
+
+    if (!cartItems.length) {
+      return { error: 'Your cart is empty.' };
+    }
+
+    const shirts = readShirts();
+    const validItems = cartItems
+      .map((item) => {
+        const shirt = shirts.find((entry) => entry.id === item.shirtId);
+
+        if (!shirt) {
+          return null;
+        }
+
+        return {
+          shirtId: shirt.id,
+          size: item.size,
+          quantity: item.quantity,
+          unitPrice: shirt.price,
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => Boolean(item));
+
+    if (!validItems.length) {
+      return { error: 'Unable to create an order because cart items are unavailable.' };
+    }
+
+    const subtotal = validItems.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
+    const shippingCost = 0;
+    const order: Order = {
+      id: randomId(),
+      userId: session.userId,
+      customerName: input.customerName.trim(),
+      customerEmail: input.customerEmail.trim().toLowerCase(),
+      shippingAddress: input.shippingAddress.trim(),
+      billingAddress: input.billingAddress.trim(),
+      shippingMethod: input.shippingMethod,
+      paymentMethod: input.paymentMethod,
+      paymentReference: input.paymentReference,
+      subtotal,
+      shippingCost,
+      total: subtotal + shippingCost,
+      status: 'paid',
+      createdAt: new Date().toISOString(),
+      items: validItems,
+    };
+
+    const orders = readJsonArray<Order>(ORDERS_KEY);
+    writeOrders([order, ...orders]);
+    writeCart([]);
+
+    return { order };
   },
 };
 
