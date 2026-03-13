@@ -9,7 +9,7 @@ if (!app) {
   throw new Error('App container not found');
 }
 
-const redirectTarget = getRedirectTarget();
+const redirectTarget = getRedirectTarget('/profile.html');
 
 app.innerHTML = `
   <div>

@@ -15,7 +15,7 @@ export const requireSignedIn = async (): Promise<boolean> => {
   return false;
 };
 
-export const getRedirectTarget = (): string => {
+export const getRedirectTarget = (fallback = '/'): string => {
   const params = new URLSearchParams(window.location.search);
-  return params.get('redirect') || '/';
+  return params.get('redirect') || fallback;
 };
