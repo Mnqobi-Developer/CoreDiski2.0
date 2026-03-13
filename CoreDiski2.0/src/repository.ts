@@ -1,10 +1,21 @@
 import { seedShirts } from './data';
-import type { CartItem, CreateShirtInput, NewsletterSubscription, Shirt, ShirtSize, WishlistItem } from './types';
+import type {
+  AuthSession,
+  CartItem,
+  CreateShirtInput,
+  NewsletterSubscription,
+  Shirt,
+  ShirtSize,
+  UserAccount,
+  WishlistItem,
+} from './types';
 
 const SHIRTS_KEY = 'corediski_shirts';
 const NEWSLETTER_KEY = 'corediski_newsletter';
 const CART_KEY = 'corediski_cart';
 const WISHLIST_KEY = 'corediski_wishlist';
+const USERS_KEY = 'corediski_users';
+const SESSION_KEY = 'corediski_session';
 
 const randomId = () =>
   typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -59,6 +70,33 @@ const writeCart = (items: CartItem[]) => {
 
 const writeWishlist = (items: WishlistItem[]) => {
   localStorage.setItem(WISHLIST_KEY, JSON.stringify(items));
+};
+
+const writeUsers = (users: UserAccount[]) => {
+  localStorage.setItem(USERS_KEY, JSON.stringify(users));
+};
+
+const writeSession = (session: AuthSession | null) => {
+  if (!session) {
+    localStorage.removeItem(SESSION_KEY);
+    return;
+  }
+
+  localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+};
+
+const readSession = (): AuthSession | null => {
+  const raw = localStorage.getItem(SESSION_KEY);
+
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(raw) as AuthSession;
+  } catch {
+    return null;
+  }
 };
 
 export const shirtRepository = {
@@ -182,6 +220,63 @@ export const wishlistRepository = {
 
   async clear(): Promise<void> {
     writeWishlist([]);
+  },
+};
+
+export const authRepository = {
+  async register(fullName: string, email: string, password: string): Promise<{ user?: UserAccount; error?: string }> {
+    const users = readJsonArray<UserAccount>(USERS_KEY);
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (users.some((user) => user.email.toLowerCase() === normalizedEmail)) {
+      return { error: 'An account with this email already exists.' };
+    }
+
+    const user: UserAccount = {
+      id: randomId(),
+      fullName: fullName.trim(),
+      email: normalizedEmail,
+      password,
+      createdAt: new Date().toISOString(),
+    };
+
+    writeUsers([user, ...users]);
+    writeSession({ userId: user.id, signedInAt: new Date().toISOString() });
+
+    return { user };
+  },
+
+  async signIn(email: string, password: string): Promise<{ user?: UserAccount; error?: string }> {
+    const users = readJsonArray<UserAccount>(USERS_KEY);
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = users.find((entry) => entry.email.toLowerCase() === normalizedEmail && entry.password === password);
+
+    if (!user) {
+      return { error: 'Invalid email or password.' };
+    }
+
+    writeSession({ userId: user.id, signedInAt: new Date().toISOString() });
+    return { user };
+  },
+
+  async getCurrentUser(): Promise<UserAccount | null> {
+    const session = readSession();
+
+    if (!session) {
+      return null;
+    }
+
+    const users = readJsonArray<UserAccount>(USERS_KEY);
+    return users.find((user) => user.id === session.userId) ?? null;
+  },
+
+  async isSignedIn(): Promise<boolean> {
+    const user = await this.getCurrentUser();
+    return Boolean(user);
+  },
+
+  async signOut(): Promise<void> {
+    writeSession(null);
   },
 };
 

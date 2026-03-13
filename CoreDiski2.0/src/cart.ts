@@ -1,4 +1,5 @@
 import './cart.css';
+import { requireSignedIn } from './auth';
 import { renderNav } from './nav';
 import { cartRepository, shirtRepository } from './repository';
 
@@ -11,6 +12,12 @@ if (!app) {
 const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 
 const renderPage = async () => {
+  const signedIn = await requireSignedIn();
+
+  if (!signedIn) {
+    return;
+  }
+
   const cartItems = await cartRepository.list();
   const resolved = await Promise.all(
     cartItems.map(async (item) => ({
@@ -88,6 +95,10 @@ const renderPage = async () => {
       </main>
     </div>
   `;
+
+  app.querySelector('.checkout')?.addEventListener('click', () => {
+    window.alert('Checkout flow coming next. You are signed in and ready to purchase.');
+  });
 
   app.querySelector('#clear-cart')?.addEventListener('click', async () => {
     await cartRepository.clear();

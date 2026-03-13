@@ -33,3 +33,16 @@ export type WishlistItem = {
   size: ShirtSize;
   addedAt: string;
 };
+
+export type UserAccount = {
+  id: string;
+  fullName: string;
+  email: string;
+  password: string;
+  createdAt: string;
+};
+
+export type AuthSession = {
+  userId: string;
+  signedInAt: string;
+};

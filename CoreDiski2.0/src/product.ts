@@ -1,4 +1,5 @@
 import './product.css';
+import { requireSignedIn } from './auth';
 import { renderNav } from './nav';
 import { cartRepository, shirtRepository, wishlistRepository } from './repository';
 import type { Shirt, ShirtSize } from './types';
@@ -153,12 +154,24 @@ const renderProduct = async () => {
 
   const addToCartButton = document.querySelector<HTMLButtonElement>('#add-to-cart');
   addToCartButton?.addEventListener('click', async () => {
+    const signedIn = await requireSignedIn();
+
+    if (!signedIn) {
+      return;
+    }
+
     await cartRepository.add(shirt.id, selectedSize);
     window.location.href = '/cart.html';
   });
 
   const addToWishlistButton = document.querySelector<HTMLButtonElement>('#add-to-wishlist');
   addToWishlistButton?.addEventListener('click', async () => {
+    const signedIn = await requireSignedIn();
+
+    if (!signedIn) {
+      return;
+    }
+
     await wishlistRepository.add(shirt.id, selectedSize);
     window.location.href = '/wishlist.html';
   });

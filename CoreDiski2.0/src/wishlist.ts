@@ -1,4 +1,5 @@
 import './wishlist.css';
+import { requireSignedIn } from './auth';
 import { renderNav } from './nav';
 import { cartRepository, shirtRepository, wishlistRepository } from './repository';
 
@@ -11,6 +12,12 @@ if (!app) {
 const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
 
 const renderPage = async () => {
+  const signedIn = await requireSignedIn();
+
+  if (!signedIn) {
+    return;
+  }
+
   const items = await wishlistRepository.list();
   const resolved = await Promise.all(
     items.map(async (item) => ({

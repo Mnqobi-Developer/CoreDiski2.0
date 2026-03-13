@@ -1,0 +1,25 @@
+:root { font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1f463d; }
+* { box-sizing: border-box; }
+body { margin: 0; background: radial-gradient(circle at 1px 1px, #e9e4d6 1px, transparent 0) 0 0 / 28px 28px, #f6f3ea; color: #1f463d; }
+.topbar { background: #1f4e44; color: #f3efe6; display: flex; justify-content: space-between; align-items: center; padding: 0.8rem 2rem; }
+.brand { display: flex; gap: 0.8rem; align-items: center; }
+.brand-logo { width: 2.4rem; height: 2.4rem; border-radius: 999px; border: 2px solid #f3efe6; display: grid; place-items: center; font-size: 0.75rem; font-weight: 700; }
+.brand-name { margin: 0; font-weight: 700; letter-spacing: 0.06em; }
+.brand-tag { margin: 0; font-size: 0.75rem; opacity: 0.85; }
+.nav-icons { display: flex; gap: 0.75rem; opacity: 0.9; }
+.nav-icons a { color: inherit; text-decoration: none; font-weight: 600; }
+.nav-icons a[aria-current='page'] { text-decoration: underline; text-underline-offset: 0.2rem; }
+
+.auth-wrap { min-height: calc(100vh - 70px); display: grid; place-items: center; padding: 1.5rem; }
+.auth-card { width: min(520px, 100%); background: #fbfaf5; border: 1px solid #ddd7ca; border-radius: 16px; padding: 1.4rem; box-shadow: 0 8px 22px rgba(16, 31, 24, 0.08); }
+.auth-card h1 { margin: 0 0 0.4rem; text-align: center; font-family: Georgia, 'Times New Roman', serif; font-size: clamp(2rem, 4vw, 2.8rem); }
+.auth-card p { text-align: center; margin: 0 0 1rem; }
+.auth-form { display: grid; gap: 0.75rem; }
+.auth-form label { display: grid; gap: 0.35rem; font-weight: 600; }
+.auth-form input { width: 100%; border: 1px solid #cdc5b7; border-radius: 8px; padding: 0.8rem; font-size: 1rem; }
+.auth-form button { border: 0; border-radius: 9px; padding: 0.85rem; background: #1f4e44; color: #fff; font-size: 1.06rem; font-weight: 700; cursor: pointer; }
+.meta-link { text-align: center; margin-top: 0.9rem; }
+.meta-link a { color: inherit; font-weight: 700; }
+.status { min-height: 1.2rem; margin: 0.3rem 0 0; text-align: center; }
+.status.error { color: #a2342a; }
+.status.success { color: #1f4e44; }
