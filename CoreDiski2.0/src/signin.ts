@@ -68,5 +68,6 @@ form?.addEventListener('submit', async (event) => {
     status.textContent = 'Signed in successfully. Redirecting...';
   }
 
-  window.location.href = redirectTarget;
+  const target = result.user?.isAdmin && redirectTarget === '/' ? '/admin.html' : redirectTarget;
+  window.location.href = target;
 });
