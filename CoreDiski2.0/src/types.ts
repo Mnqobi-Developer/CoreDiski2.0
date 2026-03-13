@@ -39,6 +39,9 @@ export type UserAccount = {
   fullName: string;
   email: string;
   password: string;
+  phone?: string;
+  address?: string;
+  emailPreferences?: string;
   createdAt: string;
 };
 
