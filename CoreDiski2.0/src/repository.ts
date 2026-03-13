@@ -8,6 +8,7 @@ import type {
   ShirtSize,
   UserAccount,
   WishlistItem,
+  AdminUserRecord,
 } from './types';
 
 const SHIRTS_KEY = 'corediski_shirts';
@@ -359,6 +360,63 @@ export const authRepository = {
     writeSession(null);
   },
 };
+
+const sanitizeUser = (user: UserAccount): AdminUserRecord => {
+  const { password: _password, ...safe } = user;
+  return safe;
+};
+
+export const adminRepository = {
+  async listUsers(): Promise<AdminUserRecord[]> {
+    return readUsers().map(sanitizeUser);
+  },
+
+  async updateUserRole(userId: string, isAdmin: boolean): Promise<AdminUserRecord | null> {
+    const users = readUsers();
+    const user = users.find((entry) => entry.id === userId);
+
+    if (!user) {
+      return null;
+    }
+
+    const admins = users.filter((entry) => entry.isAdmin);
+    if (user.isAdmin && !isAdmin && admins.length === 1) {
+      return null;
+    }
+
+    const updatedUser: UserAccount = {
+      ...user,
+      isAdmin,
+    };
+
+    writeUsers(users.map((entry) => (entry.id === userId ? updatedUser : entry)));
+    return sanitizeUser(updatedUser);
+  },
+
+  async deleteUser(userId: string): Promise<boolean> {
+    const users = readUsers();
+    const user = users.find((entry) => entry.id === userId);
+
+    if (!user) {
+      return false;
+    }
+
+    const admins = users.filter((entry) => entry.isAdmin);
+    if (user.isAdmin && admins.length === 1) {
+      return false;
+    }
+
+    writeUsers(users.filter((entry) => entry.id !== userId));
+
+    const session = readSession();
+    if (session?.userId === userId) {
+      writeSession(null);
+    }
+
+    return true;
+  },
+};
+
 
 export const newsletterRepository = {
   async subscribe(email: string): Promise<NewsletterSubscription> {

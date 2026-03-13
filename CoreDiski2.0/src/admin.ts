@@ -1,7 +1,7 @@
 import './admin.css';
 import { requireSignedIn } from './auth';
-import { authRepository, shirtRepository } from './repository';
-import type { CreateShirtInput } from './types';
+import { adminRepository, authRepository, shirtRepository } from './repository';
+import type { AdminUserRecord, CreateShirtInput } from './types';
 
 const app = document.querySelector<HTMLDivElement>('#app');
 
@@ -36,6 +36,8 @@ const pageTitleMap: Record<string, string> = {
 };
 
 let editingProductId: string | null = null;
+let customerQuery = '';
+let customerRoleFilter: 'all' | 'admin' | 'customer' = 'all';
 
 const escapeHtml = (value: string) =>
   value
@@ -50,6 +52,12 @@ const money = new Intl.NumberFormat('en-US', {
   currency: 'USD',
   maximumFractionDigits: 0,
 });
+
+const formatDate = (isoDate: string) => {
+  const date = new Date(isoDate);
+  if (Number.isNaN(date.getTime())) return '—';
+  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(date);
+};
 
 const renderDashboard = async () => {
   const shirts = await shirtRepository.list();
@@ -212,6 +220,88 @@ const renderProductsManager = async () => {
   `;
 };
 
+const renderCustomersManager = async () => {
+  const users = await adminRepository.listUsers();
+  const filteredUsers = users
+    .filter((user) => {
+      if (customerRoleFilter === 'admin') return Boolean(user.isAdmin);
+      if (customerRoleFilter === 'customer') return !user.isAdmin;
+      return true;
+    })
+    .filter((user) => {
+      if (!customerQuery.trim()) return true;
+      const needle = customerQuery.trim().toLowerCase();
+      return [user.fullName, user.email, user.phone ?? '', user.address ?? ''].join(' ').toLowerCase().includes(needle);
+    });
+
+  const totalUsers = users.length;
+  const totalAdmins = users.filter((user) => user.isAdmin).length;
+  const profileCompleteCount = users.filter((user) => user.phone && user.address).length;
+
+  return `
+    <h1 class="section-title">Customers</h1>
+
+    <section class="metrics">
+      <article class="metric-card"><p class="label">Total Accounts</p><p class="value">${totalUsers}</p></article>
+      <article class="metric-card"><p class="label">Admins</p><p class="value">${totalAdmins}</p></article>
+      <article class="metric-card"><p class="label">Customers</p><p class="value">${totalUsers - totalAdmins}</p></article>
+      <article class="metric-card"><p class="label">Profiles Completed</p><p class="value">${profileCompleteCount}</p></article>
+    </section>
+
+    <section class="panel">
+      <h2 class="panel-title">Customer Accounts</h2>
+      <p class="admin-helper">View all registered accounts, search/filter users, promote or demote admins, and remove accounts.</p>
+
+      <form id="customers-filter" class="customers-filter-row">
+        <input id="customers-query" type="search" placeholder="Search name, email, phone, address..." value="${escapeHtml(customerQuery)}" />
+        <select id="customers-role-filter" name="roleFilter">
+          <option value="all" ${customerRoleFilter === 'all' ? 'selected' : ''}>All Roles</option>
+          <option value="admin" ${customerRoleFilter === 'admin' ? 'selected' : ''}>Admins</option>
+          <option value="customer" ${customerRoleFilter === 'customer' ? 'selected' : ''}>Customers</option>
+        </select>
+        <button class="secondary" type="submit">Apply</button>
+      </form>
+
+      <p id="customers-status" class="status"></p>
+
+      <div class="panel-scroll">
+        <table class="table customer-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Phone</th>
+              <th>Address</th>
+              <th>Role</th>
+              <th>Joined</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${filteredUsers
+              .map(
+                (user) => `
+                  <tr>
+                    <td>${escapeHtml(user.fullName)}</td>
+                    <td>${escapeHtml(user.email)}</td>
+                    <td>${escapeHtml(user.phone || '—')}</td>
+                    <td>${escapeHtml(user.address || '—')}</td>
+                    <td>${user.isAdmin ? '<span class="status-pill active">Admin</span>' : '<span class="status-pill pending">Customer</span>'}</td>
+                    <td>${formatDate(user.createdAt)}</td>
+                    <td class="customer-actions">
+                      <button class="secondary toggle-role" data-user-id="${user.id}" data-is-admin="${user.isAdmin ? '1' : '0'}" type="button">${user.isAdmin ? 'Demote' : 'Promote'}</button>
+                      <button class="secondary danger remove-user" data-user-id="${user.id}" type="button">Remove</button>
+                    </td>
+                  </tr>`,
+              )
+              .join('')}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  `;
+};
+
 const renderSection = async (pathname: string) => {
   if (pathname === '/admin.html' || pathname === '/admin') {
     return renderDashboard();
@@ -219,6 +309,10 @@ const renderSection = async (pathname: string) => {
 
   if (pathname === '/admin-products.html') {
     return renderProductsManager();
+  }
+
+  if (pathname === '/admin-customers.html') {
+    return renderCustomersManager();
   }
 
   const heading = pageTitleMap[pathname] ?? 'Admin';
@@ -278,11 +372,11 @@ const bindProductsActions = () => {
     }
 
     if (editingProductId) {
-      await shirtRepository.update(editingProductId, input);
+      const updated = await shirtRepository.update(editingProductId, input);
       editingProductId = null;
       if (status) {
-        status.className = 'status success';
-        status.textContent = 'Product updated successfully.';
+        status.className = updated ? 'status success' : 'status error';
+        status.textContent = updated ? 'Product updated successfully.' : 'Unable to update product.';
       }
     } else {
       await shirtRepository.create(input);
@@ -305,6 +399,65 @@ const bindProductsActions = () => {
   cancelEdit?.addEventListener('click', async () => {
     editingProductId = null;
     await renderPage();
+  });
+};
+
+const bindCustomerActions = async (currentUser: AdminUserRecord) => {
+  const status = document.querySelector<HTMLParagraphElement>('#customers-status');
+  const filterForm = document.querySelector<HTMLFormElement>('#customers-filter');
+  const queryInput = document.querySelector<HTMLInputElement>('#customers-query');
+  const roleFilter = document.querySelector<HTMLSelectElement>('#customers-role-filter');
+
+  filterForm?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    customerQuery = queryInput?.value ?? '';
+    const role = roleFilter?.value;
+    customerRoleFilter = role === 'admin' || role === 'customer' ? role : 'all';
+    await renderPage();
+  });
+
+  document.querySelectorAll<HTMLButtonElement>('.toggle-role').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const userId = button.dataset.userId;
+      const currentRole = button.dataset.isAdmin === '1';
+
+      if (!userId) return;
+      if (userId === currentUser.id) {
+        if (status) {
+          status.className = 'status error';
+          status.textContent = 'You cannot change your own role from this screen.';
+        }
+        return;
+      }
+
+      const result = await adminRepository.updateUserRole(userId, !currentRole);
+      if (status) {
+        status.className = result ? 'status success' : 'status error';
+        status.textContent = result ? 'User role updated successfully.' : 'Unable to update role (must keep at least one admin).';
+      }
+      await renderPage();
+    });
+  });
+
+  document.querySelectorAll<HTMLButtonElement>('.remove-user').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const userId = button.dataset.userId;
+      if (!userId) return;
+      if (userId === currentUser.id) {
+        if (status) {
+          status.className = 'status error';
+          status.textContent = 'You cannot remove your own account while signed in.';
+        }
+        return;
+      }
+
+      const removed = await adminRepository.deleteUser(userId);
+      if (status) {
+        status.className = removed ? 'status success' : 'status error';
+        status.textContent = removed ? 'User removed successfully.' : 'Unable to remove user (must keep at least one admin).';
+      }
+      await renderPage();
+    });
   });
 };
 
@@ -370,6 +523,14 @@ const renderPage = async () => {
 
   if (pathname === '/admin-products.html') {
     bindProductsActions();
+  }
+
+  if (pathname === '/admin-customers.html') {
+    const users = await adminRepository.listUsers();
+    const currentRecord = users.find((entry) => entry.id === user.id);
+    if (currentRecord) {
+      await bindCustomerActions(currentRecord);
+    }
   }
 };
 

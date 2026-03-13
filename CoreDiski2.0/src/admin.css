@@ -390,3 +390,43 @@ body {
     flex-wrap: wrap;
   }
 }
+
+.customers-filter-row {
+  display: grid;
+  grid-template-columns: 1.4fr 220px auto;
+  gap: 0.6rem;
+  margin-bottom: 0.85rem;
+}
+
+.customers-filter-row input,
+.customers-filter-row select {
+  border: 1px solid #d3ccb9;
+  border-radius: 10px;
+  padding: 0.62rem 0.7rem;
+  font: inherit;
+  background: #fff;
+}
+
+.customer-table {
+  min-width: 980px;
+}
+
+.customer-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.secondary.danger {
+  border-color: #d8b5ae;
+  color: #8a2f20;
+}
+
+@media (max-width: 900px) {
+  .customers-filter-row {
+    grid-template-columns: 1fr;
+  }
+
+  .customer-actions {
+    flex-wrap: wrap;
+  }
+}

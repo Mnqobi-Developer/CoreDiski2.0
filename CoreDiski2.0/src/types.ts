@@ -50,3 +50,6 @@ export type AuthSession = {
   userId: string;
   signedInAt: string;
 };
+
+
+export type AdminUserRecord = Omit<UserAccount, 'password'>;
