@@ -167,21 +167,45 @@ const emailService = {
 const readUsers = (): UserAccount[] => {
   const users = readJsonArray<UserAccount>(USERS_KEY);
 
-  if (users.some((user) => user.email.toLowerCase() === 'admin@corediski.com')) {
+  const seedAccounts: UserAccount[] = [
+    {
+      id: randomId(),
+      fullName: 'Core Diski Admin',
+      email: 'admin@corediski.com',
+      password: 'Admin@12345',
+      createdAt: new Date().toISOString(),
+      isAdmin: true,
+      emailVerified: true,
+    },
+    {
+      id: randomId(),
+      fullName: 'Lenka Ntereke',
+      email: 'Lenkantereke25@gmail.com',
+      password: 'Germansteel@25',
+      createdAt: new Date().toISOString(),
+      isAdmin: false,
+      emailVerified: true,
+    },
+    {
+      id: randomId(),
+      fullName: 'Roberto Fentse Nkomo',
+      email: 'Robertofentsenkomo@gmail.com',
+      password: 'FentseNkomo',
+      createdAt: new Date().toISOString(),
+      isAdmin: true,
+      emailVerified: true,
+    },
+  ];
+
+  const missing = seedAccounts.filter(
+    (account) => !users.some((user) => user.email.toLowerCase() === account.email.toLowerCase()),
+  );
+
+  if (!missing.length) {
     return users;
   }
 
-  const adminUser: UserAccount = {
-    id: randomId(),
-    fullName: 'Core Diski Admin',
-    email: 'admin@corediski.com',
-    password: 'Admin@12345',
-    createdAt: new Date().toISOString(),
-    isAdmin: true,
-    emailVerified: true,
-  };
-
-  const seeded = [adminUser, ...users];
+  const seeded = [...missing, ...users];
   writeUsers(seeded);
   return seeded;
 };
