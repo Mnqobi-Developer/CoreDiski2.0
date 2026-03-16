@@ -52,10 +52,10 @@ app.innerHTML = `
         <div class="toolbar">
           <input id="search-input" class="control search" type="search" placeholder="Search clubs, players, seasons, leagues..." />
           <select id="price-filter" class="control">
-            <option value="all">$0 - $500</option>
-            <option value="0-200">$0 - $200</option>
-            <option value="201-300">$201 - $300</option>
-            <option value="301-500">$301 - $500</option>
+            <option value="all">R0 - R500</option>
+            <option value="0-200">R0 - R200</option>
+            <option value="201-300">R201 - R300</option>
+            <option value="301-500">R301 - R500</option>
           </select>
           <select id="sort-filter" class="control">
             <option value="popular">Most Popular</option>
