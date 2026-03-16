@@ -47,9 +47,9 @@ const escapeHtml = (value: string) =>
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#039;');
 
-const money = new Intl.NumberFormat('en-US', {
+const money = new Intl.NumberFormat('en-ZA', {
   style: 'currency',
-  currency: 'USD',
+  currency: 'ZAR',
   maximumFractionDigits: 0,
 });
 
@@ -161,7 +161,7 @@ const renderProductsManager = async () => {
         <label>Variant
           <input name="variant" value="${escapeHtml(seed.variant)}" required placeholder="Home / Away / Third" />
         </label>
-        <label>Price (USD)
+        <label>Price (ZAR)
           <input name="price" type="number" min="1" step="1" value="${seed.price}" required />
         </label>
         <label>Image URL
