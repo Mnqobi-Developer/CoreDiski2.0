@@ -75,9 +75,9 @@ const newsletterForm = document.querySelector<HTMLFormElement>('#newsletter-form
 const newsletterInput = document.querySelector<HTMLInputElement>('#newsletter-input');
 const newsletterMessage = document.querySelector<HTMLParagraphElement>('#newsletter-message');
 
-const money = new Intl.NumberFormat('en-US', {
+const money = new Intl.NumberFormat('en-ZA', {
   style: 'currency',
-  currency: 'USD',
+  currency: 'ZAR',
   maximumFractionDigits: 0,
 });
 
