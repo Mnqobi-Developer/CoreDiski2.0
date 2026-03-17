@@ -186,6 +186,7 @@ const getSupabaseRestHeaders = () => {
 
 const supabaseAuthHeaders = {
   apikey: supabaseHeaders.apikey,
+  Authorization: `Bearer ${supabaseHeaders.apikey}`,
   'Content-Type': 'application/json',
 };
 
@@ -223,7 +224,6 @@ const isSupabaseAdmin = async (userId: string, accessToken: string): Promise<boo
   if (!response.ok) {
     return false;
   }
-<<<<<<< codex/fetch-latest-changes-using-git-fetch-i2eprt
 
   const data = (await response.json()) as Array<{ user_id: string }>;
   return data.length > 0;
@@ -242,42 +242,20 @@ const toSupabaseAccount = (user: SupabaseAuthUser, isAdmin: boolean): UserAccoun
 });
 
 const extractSupabaseError = async (response: Response, fallback: string): Promise<string> => {
-  try {
-    const payload = (await response.json()) as { message?: string; hint?: string; details?: string };
-    return payload.message || payload.details || payload.hint || fallback;
-  } catch {
+  const raw = await response.text();
+
+  if (!raw) {
     return fallback;
+  }
+
+  try {
+    const payload = JSON.parse(raw) as { message?: string; hint?: string; details?: string; error_description?: string };
+    return payload.message || payload.error_description || payload.details || payload.hint || fallback;
+  } catch {
+    return raw || fallback;
   }
 };
 
-=======
-
-  const data = (await response.json()) as Array<{ user_id: string }>;
-  return data.length > 0;
-};
-
-const toSupabaseAccount = (user: SupabaseAuthUser, isAdmin: boolean): UserAccount => ({
-  id: user.id,
-  fullName: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Core Diski User',
-  email: user.email || '',
-  createdAt: user.created_at || new Date().toISOString(),
-  isAdmin,
-  emailVerified: Boolean(user.email_confirmed_at),
-  phone: user.user_metadata?.phone || '',
-  address: user.user_metadata?.address || '',
-  emailPreferences: user.user_metadata?.email_preferences || '',
-});
-
-const extractSupabaseError = async (response: Response, fallback: string): Promise<string> => {
-  try {
-    const payload = (await response.json()) as { message?: string; hint?: string; details?: string };
-    return payload.message || payload.details || payload.hint || fallback;
-  } catch {
-    return fallback;
-  }
-};
-
->>>>>>> main
 type SupabaseShirtRow = {
   id: string;
   club_or_nation: string;
@@ -578,6 +556,7 @@ export const authRepository = {
           email: normalizedEmail,
           password,
           data: { full_name: fullName.trim() },
+          email_redirect_to: `${window.location.origin}/verify-email.html`,
         }),
       });
 
@@ -776,7 +755,6 @@ export const authRepository = {
     return { user: updatedUser };
   },
 
-<<<<<<< codex/fetch-latest-changes-using-git-fetch-i2eprt
   async completeSupabaseSessionFromUrl(hashFragment: string): Promise<{ user?: UserAccount; error?: string }> {
     if (!hasSupabaseConfig) {
       return { error: 'Supabase authentication is not configured.' };
@@ -808,8 +786,6 @@ export const authRepository = {
     return { user: toSupabaseAccount(user, isAdmin) };
   },
 
-=======
->>>>>>> main
   async verifyEmail(token: string): Promise<{ user?: UserAccount; error?: string }> {
     if (hasSupabaseConfig) {
       return { error: 'Email verification is managed by Supabase. Please use the verification link in your inbox, then sign in.' };
@@ -847,7 +823,11 @@ export const authRepository = {
       const response = await fetch(`${supabaseBaseUrl}/auth/v1/resend`, {
         method: 'POST',
         headers: supabaseAuthHeaders,
-        body: JSON.stringify({ type: 'signup', email: normalizedEmail }),
+        body: JSON.stringify({
+          type: 'signup',
+          email: normalizedEmail,
+          email_redirect_to: `${window.location.origin}/verify-email.html`,
+        }),
       });
 
       if (!response.ok) {
