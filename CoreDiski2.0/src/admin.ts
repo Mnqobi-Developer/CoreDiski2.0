@@ -47,9 +47,9 @@ const escapeHtml = (value: string) =>
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#039;');
 
-const money = new Intl.NumberFormat('en-US', {
+const money = new Intl.NumberFormat('en-ZA', {
   style: 'currency',
-  currency: 'USD',
+  currency: 'ZAR',
   maximumFractionDigits: 0,
 });
 
@@ -161,7 +161,7 @@ const renderProductsManager = async () => {
         <label>Variant
           <input name="variant" value="${escapeHtml(seed.variant)}" required placeholder="Home / Away / Third" />
         </label>
-        <label>Price (USD)
+        <label>Price (ZAR)
           <input name="price" type="number" min="1" step="1" value="${seed.price}" required />
         </label>
         <label>Image URL
@@ -371,18 +371,25 @@ const bindProductsActions = () => {
       return;
     }
 
-    if (editingProductId) {
-      const updated = await shirtRepository.update(editingProductId, input);
-      editingProductId = null;
-      if (status) {
-        status.className = updated ? 'status success' : 'status error';
-        status.textContent = updated ? 'Product updated successfully.' : 'Unable to update product.';
+    try {
+      if (editingProductId) {
+        const updated = await shirtRepository.update(editingProductId, input);
+        editingProductId = null;
+        if (status) {
+          status.className = updated ? 'status success' : 'status error';
+          status.textContent = updated ? 'Product updated successfully.' : 'Unable to update product.';
+        }
+      } else {
+        await shirtRepository.create(input);
+        if (status) {
+          status.className = 'status success';
+          status.textContent = 'Product added successfully.';
+        }
       }
-    } else {
-      await shirtRepository.create(input);
+    } catch (error) {
       if (status) {
-        status.className = 'status success';
-        status.textContent = 'Product added successfully.';
+        status.className = 'status error';
+        status.textContent = error instanceof Error ? error.message : 'Unable to save product.';
       }
     }
 

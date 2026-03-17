@@ -44,6 +44,9 @@ export type UserAccount = {
   emailPreferences?: string;
   createdAt: string;
   isAdmin?: boolean;
+  emailVerified?: boolean;
+  emailVerificationToken?: string;
+  emailVerificationSentAt?: string;
 };
 
 export type AuthSession = {
@@ -51,5 +54,57 @@ export type AuthSession = {
   signedInAt: string;
 };
 
-
 export type AdminUserRecord = Omit<UserAccount, 'password'>;
+
+export type OrderItem = {
+  shirtId: string;
+  size: ShirtSize;
+  quantity: number;
+  unitPrice: number;
+};
+
+export type PaymentMethod = 'yoco_hosted';
+
+export type PaymentGatewayRequest = {
+  amount: number;
+  currency: 'ZAR';
+  provider: 'yoco';
+  method: PaymentMethod;
+  customerEmail: string;
+};
+
+export type PaymentGatewayResult = {
+  success: boolean;
+  provider: 'yoco';
+  checkoutId?: string;
+  checkoutUrl?: string;
+  transactionId?: string;
+  message: string;
+};
+
+export type Order = {
+  id: string;
+  userId: string;
+  customerName: string;
+  customerEmail: string;
+  shippingAddress: string;
+  billingAddress: string;
+  shippingMethod: string;
+  paymentMethod: PaymentMethod;
+  paymentReference: string;
+  subtotal: number;
+  shippingCost: number;
+  total: number;
+  status: 'pending' | 'paid';
+  createdAt: string;
+  items: OrderItem[];
+};
+
+
+export type OutgoingEmail = {
+  id: string;
+  to: string;
+  subject: string;
+  body: string;
+  sentAt: string;
+};
