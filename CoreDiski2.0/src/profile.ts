@@ -63,6 +63,7 @@ const renderPage = async () => {
             <li><a href="#">Order History</a></li>
             <li><a href="/wishlist.html">Wishlist</a></li>
             <li><a href="#profile-form">Account Settings</a></li>
+            ${user.isAdmin ? '<li><a href="/admin.html">Admin Portal</a></li>' : ''}
             <li><button id="logout-btn" type="button">Log Out</button></li>
           </ul>
         </aside>
