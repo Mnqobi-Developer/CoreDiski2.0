@@ -88,5 +88,5 @@ togglePassword?.addEventListener('click', () => {
   password.type = showing ? 'password' : 'text';
   togglePassword.setAttribute('aria-pressed', String(!showing));
   togglePassword.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
->>>>>>> main
+
 });
