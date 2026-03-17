@@ -173,6 +173,73 @@ const toShirtInsert = (input: CreateShirtInput) => ({
   featured: input.featured ?? false,
 });
 
+const getSupabaseRestHeaders = () => {
+  const session = readSession();
+  const accessToken = session?.accessToken;
+
+  return {
+    apikey: supabaseHeaders.apikey,
+    Authorization: `Bearer ${accessToken || supabaseHeaders.apikey}`,
+    'Content-Type': 'application/json',
+  };
+};
+
+const supabaseAuthHeaders = {
+  apikey: supabaseHeaders.apikey,
+  'Content-Type': 'application/json',
+};
+
+type SupabaseAuthUser = {
+  id: string;
+  email?: string;
+  created_at?: string;
+  email_confirmed_at?: string | null;
+  user_metadata?: {
+    full_name?: string;
+    phone?: string;
+    address?: string;
+    email_preferences?: string;
+  };
+};
+
+const getSupabaseUser = async (accessToken: string): Promise<SupabaseAuthUser | null> => {
+  const response = await fetch(`${supabaseBaseUrl}/auth/v1/user`, {
+    headers: { ...supabaseAuthHeaders, Authorization: `Bearer ${accessToken}` },
+  });
+
+  if (!response.ok) {
+    return null;
+  }
+
+  return (await response.json()) as SupabaseAuthUser;
+};
+
+const isSupabaseAdmin = async (userId: string, accessToken: string): Promise<boolean> => {
+  const response = await fetch(
+    `${supabaseBaseUrl}/rest/v1/admin_users?select=user_id&user_id=eq.${encodeURIComponent(userId)}&limit=1`,
+    { headers: { ...getSupabaseRestHeaders(), Authorization: `Bearer ${accessToken}` } },
+  );
+
+  if (!response.ok) {
+    return false;
+  }
+
+  const data = (await response.json()) as Array<{ user_id: string }>;
+  return data.length > 0;
+};
+
+const toSupabaseAccount = (user: SupabaseAuthUser, isAdmin: boolean): UserAccount => ({
+  id: user.id,
+  fullName: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Core Diski User',
+  email: user.email || '',
+  createdAt: user.created_at || new Date().toISOString(),
+  isAdmin,
+  emailVerified: Boolean(user.email_confirmed_at),
+  phone: user.user_metadata?.phone || '',
+  address: user.user_metadata?.address || '',
+  emailPreferences: user.user_metadata?.email_preferences || '',
+});
+
 const extractSupabaseError = async (response: Response, fallback: string): Promise<string> => {
   try {
     const payload = (await response.json()) as { message?: string; hint?: string; details?: string };
@@ -247,7 +314,7 @@ export const shirtRepository = {
     if (hasSupabaseConfig) {
       const response = await fetch(
         `${supabaseBaseUrl}/rest/v1/shirts?select=id,club_or_nation,title,season,variant,price,image_url,tags,featured`,
-        { headers: supabaseHeaders },
+        { headers: getSupabaseRestHeaders() },
       );
 
       if (!response.ok) {
@@ -294,7 +361,7 @@ export const shirtRepository = {
     if (hasSupabaseConfig) {
       const response = await fetch(
         `${supabaseBaseUrl}/rest/v1/shirts?select=id,club_or_nation,title,season,variant,price,image_url,tags,featured&id=eq.${encodeURIComponent(id)}&limit=1`,
-        { headers: supabaseHeaders },
+        { headers: getSupabaseRestHeaders() },
       );
 
       if (!response.ok) {
@@ -318,7 +385,7 @@ export const shirtRepository = {
     if (hasSupabaseConfig) {
       const response = await fetch(`${supabaseBaseUrl}/rest/v1/shirts?select=id,club_or_nation,title,season,variant,price,image_url,tags,featured`, {
         method: 'POST',
-        headers: { ...supabaseHeaders, Prefer: 'return=representation' },
+        headers: { ...getSupabaseRestHeaders(), Prefer: 'return=representation' },
         body: JSON.stringify(toShirtInsert(input)),
       });
 
@@ -350,7 +417,7 @@ export const shirtRepository = {
     if (hasSupabaseConfig) {
       const response = await fetch(`${supabaseBaseUrl}/rest/v1/shirts?select=id,club_or_nation,title,season,variant,price,image_url,tags,featured&id=eq.${encodeURIComponent(id)}`, {
         method: 'PATCH',
-        headers: { ...supabaseHeaders, Prefer: 'return=representation' },
+        headers: { ...getSupabaseRestHeaders(), Prefer: 'return=representation' },
         body: JSON.stringify(toShirtInsert(input)),
       });
 
@@ -472,8 +539,49 @@ export const wishlistRepository = {
 
 export const authRepository = {
   async register(fullName: string, email: string, password: string): Promise<{ user?: UserAccount; error?: string }> {
-    const users = readUsers();
     const normalizedEmail = email.trim().toLowerCase();
+
+    if (hasSupabaseConfig) {
+      const response = await fetch(`${supabaseBaseUrl}/auth/v1/signup`, {
+        method: 'POST',
+        headers: supabaseAuthHeaders,
+        body: JSON.stringify({
+          email: normalizedEmail,
+          password,
+          data: { full_name: fullName.trim() },
+        }),
+      });
+
+      if (!response.ok) {
+        return { error: await extractSupabaseError(response, 'Unable to create account.') };
+      }
+
+      const payload = (await response.json()) as {
+        user?: SupabaseAuthUser;
+        session?: { access_token: string; refresh_token?: string } | null;
+      };
+
+      if (!payload.user) {
+        return { error: 'Unable to create account.' };
+      }
+
+      if (payload.session?.access_token) {
+        writeSession({
+          userId: payload.user.id,
+          signedInAt: new Date().toISOString(),
+          accessToken: payload.session.access_token,
+          refreshToken: payload.session.refresh_token,
+        });
+      }
+
+      const isAdmin = payload.session?.access_token
+        ? await isSupabaseAdmin(payload.user.id, payload.session.access_token)
+        : false;
+
+      return { user: toSupabaseAccount(payload.user, isAdmin) };
+    }
+
+    const users = readUsers();
 
     if (users.some((user) => user.email.toLowerCase() === normalizedEmail)) {
       return { error: 'An account with this email already exists.' };
@@ -499,8 +607,41 @@ export const authRepository = {
   },
 
   async signIn(email: string, password: string): Promise<{ user?: UserAccount; error?: string }> {
-    const users = readUsers();
     const normalizedEmail = email.trim().toLowerCase();
+
+    if (hasSupabaseConfig) {
+      const response = await fetch(`${supabaseBaseUrl}/auth/v1/token?grant_type=password`, {
+        method: 'POST',
+        headers: supabaseAuthHeaders,
+        body: JSON.stringify({ email: normalizedEmail, password }),
+      });
+
+      if (!response.ok) {
+        return { error: await extractSupabaseError(response, 'Invalid email or password.') };
+      }
+
+      const payload = (await response.json()) as {
+        access_token?: string;
+        refresh_token?: string;
+        user?: SupabaseAuthUser;
+      };
+
+      if (!payload.access_token || !payload.user) {
+        return { error: 'Unable to sign in.' };
+      }
+
+      writeSession({
+        userId: payload.user.id,
+        signedInAt: new Date().toISOString(),
+        accessToken: payload.access_token,
+        refreshToken: payload.refresh_token,
+      });
+
+      const isAdmin = await isSupabaseAdmin(payload.user.id, payload.access_token);
+      return { user: toSupabaseAccount(payload.user, isAdmin) };
+    }
+
+    const users = readUsers();
     const user = users.find((entry) => entry.email.toLowerCase() === normalizedEmail && entry.password === password);
 
     if (!user) {
@@ -522,11 +663,25 @@ export const authRepository = {
       return null;
     }
 
+    if (hasSupabaseConfig) {
+      if (!session.accessToken) {
+        return null;
+      }
+
+      const user = await getSupabaseUser(session.accessToken);
+
+      if (!user) {
+        writeSession(null);
+        return null;
+      }
+
+      const isAdmin = await isSupabaseAdmin(user.id, session.accessToken);
+      return toSupabaseAccount(user, isAdmin);
+    }
+
     const users = readUsers();
     return users.find((user) => user.id === session.userId) ?? null;
   },
-
-
 
   async updateCurrentUser(
     updates: Pick<UserAccount, 'fullName' | 'email' | 'phone' | 'address' | 'emailPreferences'>,
@@ -535,6 +690,34 @@ export const authRepository = {
 
     if (!session) {
       return { error: 'You must be signed in to update your profile.' };
+    }
+
+    if (hasSupabaseConfig) {
+      if (!session.accessToken) {
+        return { error: 'Your session has expired. Please sign in again.' };
+      }
+
+      const response = await fetch(`${supabaseBaseUrl}/auth/v1/user`, {
+        method: 'PUT',
+        headers: { ...supabaseAuthHeaders, Authorization: `Bearer ${session.accessToken}` },
+        body: JSON.stringify({
+          email: updates.email.trim().toLowerCase(),
+          data: {
+            full_name: updates.fullName.trim(),
+            phone: updates.phone?.trim() || '',
+            address: updates.address?.trim() || '',
+            email_preferences: updates.emailPreferences?.trim() || '',
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        return { error: await extractSupabaseError(response, 'Unable to update your profile.') };
+      }
+
+      const user = (await response.json()) as SupabaseAuthUser;
+      const isAdmin = await isSupabaseAdmin(user.id, session.accessToken);
+      return { user: toSupabaseAccount(user, isAdmin) };
     }
 
     const users = readUsers();
@@ -565,6 +748,10 @@ export const authRepository = {
   },
 
   async verifyEmail(token: string): Promise<{ user?: UserAccount; error?: string }> {
+    if (hasSupabaseConfig) {
+      return { error: 'Email verification is managed by Supabase. Please use the verification link in your inbox, then sign in.' };
+    }
+
     const trimmedToken = token.trim();
 
     if (!trimmedToken) {
@@ -591,8 +778,23 @@ export const authRepository = {
   },
 
   async resendVerificationEmail(email: string): Promise<{ ok?: boolean; error?: string }> {
-    const users = readUsers();
     const normalizedEmail = email.trim().toLowerCase();
+
+    if (hasSupabaseConfig) {
+      const response = await fetch(`${supabaseBaseUrl}/auth/v1/resend`, {
+        method: 'POST',
+        headers: supabaseAuthHeaders,
+        body: JSON.stringify({ type: 'signup', email: normalizedEmail }),
+      });
+
+      if (!response.ok) {
+        return { error: await extractSupabaseError(response, 'Unable to resend verification email.') };
+      }
+
+      return { ok: true };
+    }
+
+    const users = readUsers();
     const user = users.find((entry) => entry.email.toLowerCase() === normalizedEmail);
 
     if (!user) {
@@ -622,6 +824,15 @@ export const authRepository = {
   },
 
   async signOut(): Promise<void> {
+    const session = readSession();
+
+    if (hasSupabaseConfig && session?.accessToken) {
+      await fetch(`${supabaseBaseUrl}/auth/v1/logout`, {
+        method: 'POST',
+        headers: { ...supabaseAuthHeaders, Authorization: `Bearer ${session.accessToken}` },
+      });
+    }
+
     writeSession(null);
   },
 };

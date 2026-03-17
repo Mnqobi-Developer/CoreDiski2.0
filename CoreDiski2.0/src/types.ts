@@ -38,7 +38,7 @@ export type UserAccount = {
   id: string;
   fullName: string;
   email: string;
-  password: string;
+  password?: string;
   phone?: string;
   address?: string;
   emailPreferences?: string;
@@ -52,6 +52,8 @@ export type UserAccount = {
 export type AuthSession = {
   userId: string;
   signedInAt: string;
+  accessToken?: string;
+  refreshToken?: string;
 };
 
 export type AdminUserRecord = Omit<UserAccount, 'password'>;

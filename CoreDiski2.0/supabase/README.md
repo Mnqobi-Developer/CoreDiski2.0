@@ -12,8 +12,10 @@ VITE_SUPABASE_ANON_KEY=...
 
 ### Option A: Supabase Dashboard (fastest)
 1. Open Supabase project → **SQL Editor**.
-2. Copy/paste `supabase/migrations/20260317000000_create_shirts_table.sql`.
-3. Run it.
+2. Run both migration files in order:
+   - `supabase/migrations/20260317000000_create_shirts_table.sql`
+   - `supabase/migrations/20260317000001_enable_admin_policies.sql`
+3. Run them.
 
 ### Option B: Supabase CLI
 From repo root (`CoreDiski2.0/`):
@@ -39,5 +41,18 @@ order by ordinal_position;
 Then verify the app can read/write shirts from admin page.
 
 ## Security note
-Current policies allow `anon` read/write/delete for `shirts` because the current app still uses local/custom auth for admin checks.
-After migrating to Supabase Auth, replace these with admin-only RLS policies.
+Current setup keeps `shirts` readable publicly, but write/delete is restricted to authenticated users listed in `public.admin_users`.
+
+
+## 4) Grant admin access to a Supabase Auth user
+After creating/signing up the user in Supabase Auth, run:
+
+```sql
+insert into public.admin_users (user_id)
+select id
+from auth.users
+where lower(email) = lower('Mnqobintereke2000@gmail.com')
+on conflict (user_id) do nothing;
+```
+
+This marks that authenticated user as admin for shirts write access policies.
