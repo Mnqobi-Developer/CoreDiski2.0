@@ -44,7 +44,9 @@ const renderPage = async () => {
     <div class="profile-page">
       <header class="topbar">
         <div class="brand">
-          <a class="brand-home" href="/#hero" aria-label="Go to Core Diski homepage hero section"><img class="brand-logo" src="/logo.svg" alt="Core Diski logo" /></a>
+          <a class="brand-home" href="/#hero" aria-label="Go to Core Diski homepage hero section">
+          <img class="brand-logo" src="/logo Core Diski.png" alt="Core Diski logo" />
+          </a>
           <div>
             <p class="brand-name">CORE DISKI</p>
             <p class="brand-tag">Authentic Football Shirts</p>
@@ -61,6 +63,7 @@ const renderPage = async () => {
             <li><a href="#">Order History</a></li>
             <li><a href="/wishlist.html">Wishlist</a></li>
             <li><a href="#profile-form">Account Settings</a></li>
+            ${user.isAdmin ? '<li><a href="/admin.html">Admin Portal</a></li>' : ''}
             <li><button id="logout-btn" type="button">Log Out</button></li>
           </ul>
         </aside>
