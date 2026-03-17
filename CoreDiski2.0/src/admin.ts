@@ -1,7 +1,7 @@
 import './admin.css';
 import { requireSignedIn } from './auth';
 import { adminRepository, authRepository, shirtRepository } from './repository';
-import type { AdminUserRecord, CreateShirtInput } from './types';
+import type { AdminSettings, AdminUserRecord, CreateShirtInput } from './types';
 
 const app = document.querySelector<HTMLDivElement>('#app');
 
@@ -353,6 +353,100 @@ const renderCustomersManager = async () => {
   `;
 };
 
+
+const renderSettingsManager = async () => {
+  const settings = await adminRepository.getSettings();
+  const users = await adminRepository.listUsers();
+  const orders = await adminRepository.listOrders();
+
+  const adminCount = users.filter((user) => user.isAdmin).length;
+  const pendingOrders = orders.filter((order) => order.status === 'pending').length;
+
+  return `
+    <h1 class="section-title">Settings</h1>
+
+    <section class="metrics">
+      <article class="metric-card"><p class="label">Admin Accounts</p><p class="value">${adminCount}</p></article>
+      <article class="metric-card"><p class="label">Pending Orders</p><p class="value">${pendingOrders}</p></article>
+      <article class="metric-card"><p class="label">Tax Rate</p><p class="value">${settings.taxRate}%</p></article>
+      <article class="metric-card"><p class="label">Currency</p><p class="value">${settings.currency}</p></article>
+    </section>
+
+    <section class="panel">
+      <h2 class="panel-title">Store Configuration</h2>
+      <p class="admin-helper">Update core storefront details, checkout defaults, and operational toggles used by administrators.</p>
+
+      <form id="settings-form" class="settings-form">
+        <label>Store Name
+          <input name="storeName" value="${escapeHtml(settings.storeName)}" required />
+        </label>
+        <label>Support Email
+          <input name="supportEmail" type="email" value="${escapeHtml(settings.supportEmail)}" required />
+        </label>
+        <label>Support Phone
+          <input name="supportPhone" value="${escapeHtml(settings.supportPhone)}" required />
+        </label>
+        <label>Currency
+          <select name="currency" required>
+            <option value="ZAR" ${settings.currency === 'ZAR' ? 'selected' : ''}>ZAR</option>
+            <option value="USD" ${settings.currency === 'USD' ? 'selected' : ''}>USD</option>
+            <option value="EUR" ${settings.currency === 'EUR' ? 'selected' : ''}>EUR</option>
+          </select>
+        </label>
+        <label>Tax Rate (%)
+          <input name="taxRate" type="number" min="0" max="100" step="0.1" value="${settings.taxRate}" required />
+        </label>
+        <label>Flat Shipping Rate
+          <input name="shippingFlatRate" type="number" min="0" step="1" value="${settings.shippingFlatRate}" required />
+        </label>
+        <label>Low Stock Threshold
+          <input name="lowStockThreshold" type="number" min="0" step="1" value="${settings.lowStockThreshold}" required />
+        </label>
+
+        <label class="check-row full">
+          <input name="maintenanceMode" type="checkbox" ${settings.maintenanceMode ? 'checked' : ''} />
+          Maintenance mode (temporarily pause storefront activity)
+        </label>
+        <label class="check-row full">
+          <input name="orderNotifications" type="checkbox" ${settings.orderNotifications ? 'checked' : ''} />
+          Send admin notifications for new orders
+        </label>
+        <label class="check-row full">
+          <input name="newsletterDoubleOptIn" type="checkbox" ${settings.newsletterDoubleOptIn ? 'checked' : ''} />
+          Require newsletter double opt-in
+        </label>
+
+        <p class="admin-helper full">Last updated: ${formatDate(settings.updatedAt)}</p>
+
+        <div class="product-form-actions full">
+          <button class="primary" type="submit">Save Settings</button>
+          <button id="reset-settings" class="secondary" type="button">Reset Defaults</button>
+        </div>
+      </form>
+
+      <p id="settings-status" class="status"></p>
+    </section>
+  `;
+};
+
+const settingsInputFromForm = (form: HTMLFormElement): Omit<AdminSettings, 'updatedAt'> => {
+  const data = new FormData(form);
+  const currency = String(data.get('currency') ?? 'ZAR');
+
+  return {
+    storeName: String(data.get('storeName') ?? '').trim(),
+    supportEmail: String(data.get('supportEmail') ?? '').trim().toLowerCase(),
+    supportPhone: String(data.get('supportPhone') ?? '').trim(),
+    currency: currency === 'USD' || currency === 'EUR' ? currency : 'ZAR',
+    taxRate: Number(data.get('taxRate') ?? 0),
+    shippingFlatRate: Number(data.get('shippingFlatRate') ?? 0),
+    lowStockThreshold: Number(data.get('lowStockThreshold') ?? 0),
+    maintenanceMode: Boolean(data.get('maintenanceMode')),
+    orderNotifications: Boolean(data.get('orderNotifications')),
+    newsletterDoubleOptIn: Boolean(data.get('newsletterDoubleOptIn')),
+  };
+};
+
 const renderSection = async (pathname: string) => {
   if (pathname === '/admin.html' || pathname === '/admin') {
     return renderDashboard();
@@ -364,6 +458,10 @@ const renderSection = async (pathname: string) => {
 
   if (pathname === '/admin-customers.html') {
     return renderCustomersManager();
+  }
+
+  if (pathname === '/admin-settings.html') {
+    return renderSettingsManager();
   }
 
   const heading = pageTitleMap[pathname] ?? 'Admin';
@@ -449,6 +547,46 @@ const bindProductsActions = () => {
 
   cancelEdit?.addEventListener('click', async () => {
     editingProductId = null;
+    await renderPage();
+  });
+};
+
+
+const bindSettingsActions = () => {
+  const form = document.querySelector<HTMLFormElement>('#settings-form');
+  const status = document.querySelector<HTMLParagraphElement>('#settings-status');
+  const resetButton = document.querySelector<HTMLButtonElement>('#reset-settings');
+
+  form?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const input = settingsInputFromForm(form);
+
+    if (!input.storeName || !input.supportEmail || !input.supportPhone || input.taxRate < 0 || input.shippingFlatRate < 0 || input.lowStockThreshold < 0) {
+      if (status) {
+        status.className = 'status error';
+        status.textContent = 'Please enter valid settings values before saving.';
+      }
+      return;
+    }
+
+    await adminRepository.updateSettings(input);
+
+    if (status) {
+      status.className = 'status success';
+      status.textContent = 'Settings saved successfully.';
+    }
+
+    await renderPage();
+  });
+
+  resetButton?.addEventListener('click', async () => {
+    await adminRepository.resetSettings();
+
+    if (status) {
+      status.className = 'status success';
+      status.textContent = 'Settings reset to defaults.';
+    }
+
     await renderPage();
   });
 };
@@ -582,6 +720,10 @@ const renderPage = async () => {
     if (currentRecord) {
       await bindCustomerActions(currentRecord);
     }
+  }
+
+  if (pathname === '/admin-settings.html') {
+    bindSettingsActions();
   }
 };
 
