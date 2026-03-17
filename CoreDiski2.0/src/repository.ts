@@ -186,6 +186,7 @@ const getSupabaseRestHeaders = () => {
 
 const supabaseAuthHeaders = {
   apikey: supabaseHeaders.apikey,
+  Authorization: `Bearer ${supabaseHeaders.apikey}`,
   'Content-Type': 'application/json',
 };
 
@@ -241,11 +242,17 @@ const toSupabaseAccount = (user: SupabaseAuthUser, isAdmin: boolean): UserAccoun
 });
 
 const extractSupabaseError = async (response: Response, fallback: string): Promise<string> => {
-  try {
-    const payload = (await response.json()) as { message?: string; hint?: string; details?: string };
-    return payload.message || payload.details || payload.hint || fallback;
-  } catch {
+  const raw = await response.text();
+
+  if (!raw) {
     return fallback;
+  }
+
+  try {
+    const payload = JSON.parse(raw) as { message?: string; hint?: string; details?: string; error_description?: string };
+    return payload.message || payload.error_description || payload.details || payload.hint || fallback;
+  } catch {
+    return raw || fallback;
   }
 };
 
@@ -549,6 +556,7 @@ export const authRepository = {
           email: normalizedEmail,
           password,
           data: { full_name: fullName.trim() },
+          email_redirect_to: `${window.location.origin}/verify-email.html`,
         }),
       });
 
@@ -815,7 +823,11 @@ export const authRepository = {
       const response = await fetch(`${supabaseBaseUrl}/auth/v1/resend`, {
         method: 'POST',
         headers: supabaseAuthHeaders,
-        body: JSON.stringify({ type: 'signup', email: normalizedEmail }),
+        body: JSON.stringify({
+          type: 'signup',
+          email: normalizedEmail,
+          email_redirect_to: `${window.location.origin}/verify-email.html`,
+        }),
       });
 
       if (!response.ok) {
