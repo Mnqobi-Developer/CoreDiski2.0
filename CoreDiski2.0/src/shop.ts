@@ -14,7 +14,9 @@ app.innerHTML = `
   <div class="shop-page">
     <header class="topbar">
       <div class="brand">
-        <a class="brand-home" href="/#hero" aria-label="Go to Core Diski homepage hero section"><img class="brand-logo" src="/logo.svg" alt="Core Diski logo" /></a>
+        <a class="brand-home" href="/#hero" aria-label="Go to Core Diski homepage hero section">
+          <img class="brand-logo" src="/logo Core Diski.png" alt="Core Diski logo" />
+        </a>
         <div>
           <p class="brand-name">CORE DISKI</p>
           <p class="brand-tag">Authentic Football Shirts</p>
@@ -110,6 +112,12 @@ const inSelectedEra = (shirt: Shirt, era: string) => {
 
 const inPriceRange = (shirt: Shirt, range: string) => {
   if (range === 'all') return true;
+
+  if (range.endsWith('+')) {
+    const min = Number(range.replace('+', ''));
+    return shirt.price >= min;
+  }
+
   const [min, max] = range.split('-').map(Number);
   return shirt.price >= min && shirt.price <= max;
 };

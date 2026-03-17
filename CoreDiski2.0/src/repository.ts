@@ -40,6 +40,8 @@ const hydrateSeed = (): Shirt[] =>
     id: randomId(),
   }));
 
+
+
 const readJsonArray = <T>(key: string): T[] => {
   const raw = localStorage.getItem(key);
 
@@ -843,6 +845,30 @@ const sanitizeUser = (user: UserAccount): AdminUserRecord => {
 export const adminRepository = {
   async listUsers(): Promise<AdminUserRecord[]> {
     return readUsers().map(sanitizeUser);
+  },
+
+  
+
+
+  async listOrders(): Promise<Order[]> {
+    return readJsonArray<Order>(ORDERS_KEY);
+  },
+
+  async updateOrderStatus(orderId: string, status: Order['status']): Promise<Order | null> {
+    const orders = readJsonArray<Order>(ORDERS_KEY);
+    const target = orders.find((order) => order.id === orderId);
+
+    if (!target) {
+      return null;
+    }
+
+    const updated: Order = {
+      ...target,
+      status,
+    };
+
+    writeOrders(orders.map((order) => (order.id === orderId ? updated : order)));
+    return updated;
   },
 
   async updateUserRole(userId: string, isAdmin: boolean): Promise<AdminUserRecord | null> {
