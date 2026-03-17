@@ -11,9 +11,13 @@ if (!app) {
 
 const params = new URLSearchParams(window.location.search);
 const token = params.get('token') || '';
+const hashParams = new URLSearchParams(window.location.hash.startsWith('#') ? window.location.hash.slice(1) : window.location.hash);
 
 const render = async () => {
-  const result = await authRepository.verifyEmail(token);
+  const hasSupabaseSession = hashParams.has('access_token');
+  const result = hasSupabaseSession
+    ? await authRepository.completeSupabaseSessionFromUrl(window.location.hash)
+    : await authRepository.verifyEmail(token);
   const success = Boolean(result.user);
 
   app.innerHTML = `
