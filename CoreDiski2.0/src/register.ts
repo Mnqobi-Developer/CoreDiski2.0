@@ -28,16 +28,13 @@ app.innerHTML = `
         <p>Register before adding items to cart or purchasing.</p>
         <form id="register-form" class="auth-form">
           <label>Full Name
-            <input id="full-name" type="text" required minlength="2" placeholder="John Doe" />
+            <input id="full-name" type="text" required minlength="2" placeholder=" " />
           </label>
           <label>Email Address
-            <input id="email" type="email" required placeholder="you@email.com" />
+            <input id="email" type="email" required placeholder=" " />
           </label>
           <label>Password
-            <div class="password-field">
-              <input id="password" type="password" required minlength="8" placeholder="********" />
-              <button id="toggle-password" class="password-toggle" type="button" aria-label="Show password" aria-pressed="false">👁</button>
-            </div>
+            <input id="password" type="password" required minlength="8" placeholder="********" />
           </label>
           <button type="submit">Create Account</button>
         </form>
@@ -75,17 +72,4 @@ form?.addEventListener('submit', async (event) => {
   setTimeout(() => {
     window.location.href = `/signin.html?email=${encodeURIComponent(email?.value ?? '')}`;
   }, 900);
-});
-
-const togglePassword = document.querySelector<HTMLButtonElement>('#toggle-password');
-
-togglePassword?.addEventListener('click', () => {
-  if (!password) {
-    return;
-  }
-
-  const showing = password.type === 'text';
-  password.type = showing ? 'password' : 'text';
-  togglePassword.setAttribute('aria-pressed', String(!showing));
-  togglePassword.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
 });
