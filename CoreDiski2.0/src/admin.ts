@@ -59,13 +59,80 @@ const formatDate = (isoDate: string) => {
   return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(date);
 };
 
+const statusTone = (status: string) => {
+  if (status === 'paid') return 'completed';
+  return 'pending';
+};
+
+const statusLabel = (status: string) => {
+  if (status === 'paid') return 'Paid';
+  return 'Pending';
+};
+
+const relativeOrderDate = (isoDate: string) => {
+  const date = new Date(isoDate);
+  if (Number.isNaN(date.getTime())) {
+    return '—';
+  }
+
+  const today = new Date();
+  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const startOfDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const diffDays = Math.round((startOfToday.getTime() - startOfDate.getTime()) / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  return formatDate(isoDate);
+};
+
 const renderDashboard = async () => {
-  const shirts = await shirtRepository.list();
+  const [shirts, users, orders] = await Promise.all([
+    shirtRepository.list(),
+    adminRepository.listUsers(),
+    adminRepository.listOrders(),
+  ]);
+
   const totalProducts = shirts.length;
-  const totalOrders = 1524;
-  const totalCustomers = 980;
-  const outOfStock = 5;
+  const totalOrders = orders.length;
+  const totalCustomers = users.filter((user) => !user.isAdmin).length;
+  const outOfStock = shirts.filter((shirt) => shirt.featured === false).length;
+
   const featuredRows = shirts.slice(0, 5);
+  const recentOrders = [...orders]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 4);
+
+  const recentProductsMarkup = featuredRows.length
+    ? featuredRows
+        .map(
+          (shirt) => `
+                <tr>
+                  <td><strong>${escapeHtml(shirt.title)}</strong><br/><small>${escapeHtml(shirt.season)} ${escapeHtml(shirt.variant)}</small></td>
+                  <td>${money.format(shirt.price)}</td>
+                  <td>${shirt.featured ? '<span class="status-pill active">Featured</span>' : '<span class="status-pill pending">Standard</span>'}</td>
+                  <td><span class="status-pill active">Active</span></td>
+                </tr>`,
+        )
+        .join('')
+    : '<tr><td colspan="4">No products found.</td></tr>';
+
+  const recentOrdersMarkup = recentOrders.length
+    ? recentOrders
+        .map(
+          (order) => `
+              <tr><td>#${escapeHtml(order.id.slice(-6).toUpperCase())}</td><td>${escapeHtml(order.customerName)}</td><td>${relativeOrderDate(order.createdAt)}</td></tr>`,
+        )
+        .join('')
+    : '<tr><td colspan="3">No orders yet.</td></tr>';
+
+  const orderStatusMarkup = recentOrders.length
+    ? recentOrders
+        .map(
+          (order) => `
+              <tr><td>#${escapeHtml(order.id.slice(-6).toUpperCase())}</td><td>${escapeHtml(order.customerName)}</td><td><span class="status-pill ${statusTone(order.status)}">${statusLabel(order.status)}</span></td></tr>`,
+        )
+        .join('')
+    : '<tr><td colspan="3">No orders yet.</td></tr>';
 
   return `
     <h1 class="section-title">Dashboard</h1>
@@ -80,20 +147,10 @@ const renderDashboard = async () => {
       <h2 class="panel-title">Recent Products</h2>
       <table class="table">
         <thead>
-          <tr><th>Product</th><th>Price</th><th>Stock</th><th>Status</th></tr>
+          <tr><th>Product</th><th>Price</th><th>Type</th><th>Status</th></tr>
         </thead>
         <tbody>
-          ${featuredRows
-            .map(
-              (shirt, index) => `
-                <tr>
-                  <td><strong>${escapeHtml(shirt.title)}</strong><br/><small>${escapeHtml(shirt.season)} ${escapeHtml(shirt.variant)}</small></td>
-                  <td>${money.format(shirt.price)}</td>
-                  <td>${Math.max(6, 26 - index * 3)}</td>
-                  <td><span class="status-pill active">Active</span></td>
-                </tr>`,
-            )
-            .join('')}
+          ${recentProductsMarkup}
         </tbody>
       </table>
     </section>
@@ -103,10 +160,7 @@ const renderDashboard = async () => {
         <h2 class="panel-title">Recent Orders</h2>
         <table class="table">
           <tbody>
-            <tr><td>#10204</td><td>Mark Johnson</td><td>Today</td></tr>
-            <tr><td>#10203</td><td>Emma Wilson</td><td>Yesterday</td></tr>
-            <tr><td>#10202</td><td>Gregory Lewis</td><td>April 22</td></tr>
-            <tr><td>#10201</td><td>Laura White</td><td>April 20</td></tr>
+            ${recentOrdersMarkup}
           </tbody>
         </table>
       </article>
@@ -115,10 +169,7 @@ const renderDashboard = async () => {
         <h2 class="panel-title">Order Status</h2>
         <table class="table">
           <tbody>
-            <tr><td>#10204</td><td>Mark Johnson</td><td><span class="status-pill pending">Pending</span></td></tr>
-            <tr><td>#10203</td><td>Emma Wilson</td><td><span class="status-pill shipped">Shipped</span></td></tr>
-            <tr><td>#10202</td><td>Gregory Lewis</td><td><span class="status-pill pending">Pending</span></td></tr>
-            <tr><td>#10201</td><td>Laura White</td><td><span class="status-pill completed">Completed</span></td></tr>
+            ${orderStatusMarkup}
           </tbody>
         </table>
       </article>

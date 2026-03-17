@@ -492,6 +492,10 @@ export const adminRepository = {
     return readUsers().map(sanitizeUser);
   },
 
+  async listOrders(): Promise<Order[]> {
+    return readJsonArray<Order>(ORDERS_KEY);
+  },
+
   async updateUserRole(userId: string, isAdmin: boolean): Promise<AdminUserRecord | null> {
     const users = readUsers();
     const user = users.find((entry) => entry.id === userId);
