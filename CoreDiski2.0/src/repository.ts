@@ -138,6 +138,25 @@ const emailService = {
 };
 
 
+
+const emailService = {
+  async sendVerificationEmail(fullName: string, email: string, token: string): Promise<OutgoingEmail> {
+    const verificationUrl = buildVerificationUrl(token);
+    const message: OutgoingEmail = {
+      id: randomId(),
+      to: email,
+      subject: 'Verify your Core Diski account',
+      body: `Hi ${fullName}, verify your account: ${verificationUrl}`,
+      sentAt: new Date().toISOString(),
+    };
+
+    const outbox = readJsonArray<OutgoingEmail>(EMAIL_OUTBOX_KEY);
+    localStorage.setItem(EMAIL_OUTBOX_KEY, JSON.stringify([message, ...outbox]));
+    return message;
+  },
+};
+
+
 const toShirt = (row: {
   id: string;
   club_or_nation: string;
@@ -170,6 +189,48 @@ const toShirtInsert = (input: CreateShirtInput) => ({
   tags: input.tags,
   featured: input.featured ?? false,
 });
+
+const toShirt = (row: {
+  id: string;
+  club_or_nation: string;
+  title: string;
+  season: string;
+  variant: string;
+  price: number;
+  image_url: string;
+  tags: string[] | null;
+  featured: boolean | null;
+}): Shirt => ({
+  id: row.id,
+  clubOrNation: row.club_or_nation,
+  title: row.title,
+  season: row.season,
+  variant: row.variant,
+  price: Number(row.price),
+  imageUrl: row.image_url,
+  tags: row.tags ?? [],
+  featured: row.featured ?? false,
+});
+
+const toShirtInsert = (input: CreateShirtInput) => ({
+  club_or_nation: input.clubOrNation,
+  title: input.title,
+  season: input.season,
+  variant: input.variant,
+  price: input.price,
+  image_url: input.imageUrl,
+  tags: input.tags,
+  featured: input.featured ?? false,
+});
+
+const extractSupabaseError = async (response: Response, fallback: string): Promise<string> => {
+  try {
+    const payload = (await response.json()) as { message?: string; hint?: string; details?: string };
+    return payload.message || payload.details || payload.hint || fallback;
+  } catch {
+    return fallback;
+  }
+};
 
 const readUsers = (): UserAccount[] => {
   const users = readJsonArray<UserAccount>(USERS_KEY);
@@ -227,33 +288,35 @@ export const shirtRepository = {
         { headers: supabaseHeaders },
       );
 
-      if (response.ok) {
-        const data = (await response.json()) as Array<{
-          id: string;
-          club_or_nation: string;
-          title: string;
-          season: string;
-          variant: string;
-          price: number;
-          image_url: string;
-          tags: string[] | null;
-          featured: boolean | null;
-        }>;
-
-        const shirts = data.map(toShirt);
-
-        if (!normalized) {
-          return shirts;
-        }
-
-        return shirts.filter((shirt) => {
-          const haystack = [shirt.clubOrNation, shirt.title, shirt.season, shirt.variant, ...shirt.tags]
-            .join(' ')
-            .toLowerCase();
-
-          return haystack.includes(normalized);
-        });
+      if (!response.ok) {
+        throw new Error(await extractSupabaseError(response, 'Unable to load products from Supabase.'));
       }
+
+      const data = (await response.json()) as Array<{
+        id: string;
+        club_or_nation: string;
+        title: string;
+        season: string;
+        variant: string;
+        price: number;
+        image_url: string;
+        tags: string[] | null;
+        featured: boolean | null;
+      }>;
+
+      const shirts = data.map(toShirt);
+
+      if (!normalized) {
+        return shirts;
+      }
+
+      return shirts.filter((shirt) => {
+        const haystack = [shirt.clubOrNation, shirt.title, shirt.season, shirt.variant, ...shirt.tags]
+          .join(' ')
+          .toLowerCase();
+
+        return haystack.includes(normalized);
+      });
     }
 
     const shirts = readShirts();
@@ -282,23 +345,27 @@ export const shirtRepository = {
         { headers: supabaseHeaders },
       );
 
-      if (response.ok) {
-        const data = (await response.json()) as Array<{
-          id: string;
-          club_or_nation: string;
-          title: string;
-          season: string;
-          variant: string;
-          price: number;
-          image_url: string;
-          tags: string[] | null;
-          featured: boolean | null;
-        }>;
-
-        if (data.length) {
-          return toShirt(data[0]);
-        }
+      if (!response.ok) {
+        throw new Error(await extractSupabaseError(response, 'Unable to load product from Supabase.'));
       }
+
+      const data = (await response.json()) as Array<{
+        id: string;
+        club_or_nation: string;
+        title: string;
+        season: string;
+        variant: string;
+        price: number;
+        image_url: string;
+        tags: string[] | null;
+        featured: boolean | null;
+      }>;
+
+      if (data.length) {
+        return toShirt(data[0]);
+      }
+
+      return null;
     }
 
     const shirts = readShirts();
@@ -313,23 +380,27 @@ export const shirtRepository = {
         body: JSON.stringify(toShirtInsert(input)),
       });
 
-      if (response.ok) {
-        const data = (await response.json()) as Array<{
-          id: string;
-          club_or_nation: string;
-          title: string;
-          season: string;
-          variant: string;
-          price: number;
-          image_url: string;
-          tags: string[] | null;
-          featured: boolean | null;
-        }>;
-
-        if (data.length) {
-          return toShirt(data[0]);
-        }
+      if (!response.ok) {
+        throw new Error(await extractSupabaseError(response, 'Unable to create product in Supabase.'));
       }
+
+      const data = (await response.json()) as Array<{
+        id: string;
+        club_or_nation: string;
+        title: string;
+        season: string;
+        variant: string;
+        price: number;
+        image_url: string;
+        tags: string[] | null;
+        featured: boolean | null;
+      }>;
+
+      if (data.length) {
+        return toShirt(data[0]);
+      }
+
+      throw new Error('Supabase did not return the created product record.');
     }
 
     const shirts = readShirts();
@@ -351,23 +422,27 @@ export const shirtRepository = {
         body: JSON.stringify(toShirtInsert(input)),
       });
 
-      if (response.ok) {
-        const data = (await response.json()) as Array<{
-          id: string;
-          club_or_nation: string;
-          title: string;
-          season: string;
-          variant: string;
-          price: number;
-          image_url: string;
-          tags: string[] | null;
-          featured: boolean | null;
-        }>;
-
-        if (data.length) {
-          return toShirt(data[0]);
-        }
+      if (!response.ok) {
+        throw new Error(await extractSupabaseError(response, 'Unable to update product in Supabase.'));
       }
+
+      const data = (await response.json()) as Array<{
+        id: string;
+        club_or_nation: string;
+        title: string;
+        season: string;
+        variant: string;
+        price: number;
+        image_url: string;
+        tags: string[] | null;
+        featured: boolean | null;
+      }>;
+
+      if (data.length) {
+        return toShirt(data[0]);
+      }
+
+      return null;
     }
 
     const shirts = readShirts();

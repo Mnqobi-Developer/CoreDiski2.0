@@ -70,7 +70,6 @@ form?.addEventListener('submit', async (event) => {
   if (status) {
     status.className = 'status success';
     status.textContent = 'Account created. Please verify your email via the link sent before signing in.';
-<<<<<<< codex/fetch-latest-changes-using-git-fetch-ajqeph
   }
 
   setTimeout(() => {
@@ -89,11 +88,5 @@ togglePassword?.addEventListener('click', () => {
   password.type = showing ? 'password' : 'text';
   togglePassword.setAttribute('aria-pressed', String(!showing));
   togglePassword.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
-=======
-  }
-
-  setTimeout(() => {
-    window.location.href = `/signin.html?email=${encodeURIComponent(email?.value ?? '')}`;
-  }, 900);
 >>>>>>> main
 });

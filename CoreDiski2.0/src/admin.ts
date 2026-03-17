@@ -731,18 +731,25 @@ const bindProductsActions = () => {
       return;
     }
 
-    if (editingProductId) {
-      const updated = await shirtRepository.update(editingProductId, input);
-      editingProductId = null;
-      if (status) {
-        status.className = updated ? 'status success' : 'status error';
-        status.textContent = updated ? 'Product updated successfully.' : 'Unable to update product.';
+    try {
+      if (editingProductId) {
+        const updated = await shirtRepository.update(editingProductId, input);
+        editingProductId = null;
+        if (status) {
+          status.className = updated ? 'status success' : 'status error';
+          status.textContent = updated ? 'Product updated successfully.' : 'Unable to update product.';
+        }
+      } else {
+        await shirtRepository.create(input);
+        if (status) {
+          status.className = 'status success';
+          status.textContent = 'Product added successfully.';
+        }
       }
-    } else {
-      await shirtRepository.create(input);
+    } catch (error) {
       if (status) {
-        status.className = 'status success';
-        status.textContent = 'Product added successfully.';
+        status.className = 'status error';
+        status.textContent = error instanceof Error ? error.message : 'Unable to save product.';
       }
     }
 
