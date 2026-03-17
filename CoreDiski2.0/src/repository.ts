@@ -15,6 +15,11 @@ import type {
   PaymentGatewayResult,
   PaymentMethod,
   OutgoingEmail,
+<<<<<<< codex/fetch-latest-changes-using-git-fetch-ajqeph
+=======
+  AdminSettings,
+  UpdateAdminSettingsInput,
+>>>>>>> main
 } from './types';
 
 const SHIRTS_KEY = 'corediski_shirts';
@@ -28,6 +33,10 @@ const PAYMENT_TRANSACTIONS_KEY = 'corediski_payment_transactions';
 const YOCO_PUBLIC_KEY = 'pk_test_corediski_yoco';
 const YOCO_PAYMENT_PAGE_URL = 'https://pay.yoco.com/corediski';
 const EMAIL_OUTBOX_KEY = 'corediski_email_outbox';
+<<<<<<< codex/fetch-latest-changes-using-git-fetch-ajqeph
+=======
+const ADMIN_SETTINGS_KEY = 'corediski_admin_settings';
+>>>>>>> main
 
 const randomId = () =>
   typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -39,6 +48,8 @@ const hydrateSeed = (): Shirt[] =>
     ...shirt,
     id: randomId(),
   }));
+
+
 
 const readJsonArray = <T>(key: string): T[] => {
   const raw = localStorage.getItem(key);
@@ -134,7 +145,71 @@ const emailService = {
     return message;
   },
 };
+<<<<<<< codex/fetch-latest-changes-using-git-fetch-ajqeph
+=======
 
+
+
+
+const defaultAdminSettings = (): AdminSettings => ({
+  storeName: 'Core Diski',
+  supportEmail: 'support@corediski.com',
+  supportPhone: '+27 67 123 4567',
+  currency: 'ZAR',
+  taxRate: 15,
+  shippingFlatRate: 0,
+  lowStockThreshold: 5,
+  maintenanceMode: false,
+  orderNotifications: true,
+  newsletterDoubleOptIn: true,
+  updatedAt: new Date().toISOString(),
+});
+
+const readAdminSettings = (): AdminSettings => {
+  const raw = localStorage.getItem(ADMIN_SETTINGS_KEY);
+
+  if (!raw) {
+    const initial = defaultAdminSettings();
+    localStorage.setItem(ADMIN_SETTINGS_KEY, JSON.stringify(initial));
+    return initial;
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as Partial<AdminSettings>;
+    const base = defaultAdminSettings();
+
+    const hydrated: AdminSettings = {
+      ...base,
+      ...parsed,
+      currency: parsed.currency === 'USD' || parsed.currency === 'EUR' ? parsed.currency : 'ZAR',
+      taxRate: Number.isFinite(parsed.taxRate) ? Number(parsed.taxRate) : base.taxRate,
+      shippingFlatRate: Number.isFinite(parsed.shippingFlatRate) ? Number(parsed.shippingFlatRate) : base.shippingFlatRate,
+      lowStockThreshold: Number.isFinite(parsed.lowStockThreshold) ? Number(parsed.lowStockThreshold) : base.lowStockThreshold,
+      maintenanceMode: Boolean(parsed.maintenanceMode),
+      orderNotifications: parsed.orderNotifications !== false,
+      newsletterDoubleOptIn: parsed.newsletterDoubleOptIn !== false,
+      updatedAt: typeof parsed.updatedAt === 'string' ? parsed.updatedAt : base.updatedAt,
+    };
+
+    localStorage.setItem(ADMIN_SETTINGS_KEY, JSON.stringify(hydrated));
+    return hydrated;
+  } catch {
+    const fallback = defaultAdminSettings();
+    localStorage.setItem(ADMIN_SETTINGS_KEY, JSON.stringify(fallback));
+    return fallback;
+  }
+};
+
+const writeAdminSettings = (input: UpdateAdminSettingsInput): AdminSettings => {
+  const settings: AdminSettings = {
+    ...input,
+    updatedAt: new Date().toISOString(),
+  };
+>>>>>>> main
+
+  localStorage.setItem(ADMIN_SETTINGS_KEY, JSON.stringify(settings));
+  return settings;
+};
 
 
 
@@ -637,6 +712,42 @@ const sanitizeUser = (user: UserAccount): AdminUserRecord => {
 export const adminRepository = {
   async listUsers(): Promise<AdminUserRecord[]> {
     return readUsers().map(sanitizeUser);
+  },
+
+  async getSettings(): Promise<AdminSettings> {
+    return readAdminSettings();
+  },
+
+  async updateSettings(input: UpdateAdminSettingsInput): Promise<AdminSettings> {
+    return writeAdminSettings(input);
+  },
+
+  async resetSettings(): Promise<AdminSettings> {
+    const defaults = defaultAdminSettings();
+    localStorage.setItem(ADMIN_SETTINGS_KEY, JSON.stringify(defaults));
+    return defaults;
+  },
+
+
+  async listOrders(): Promise<Order[]> {
+    return readJsonArray<Order>(ORDERS_KEY);
+  },
+
+  async updateOrderStatus(orderId: string, status: Order['status']): Promise<Order | null> {
+    const orders = readJsonArray<Order>(ORDERS_KEY);
+    const target = orders.find((order) => order.id === orderId);
+
+    if (!target) {
+      return null;
+    }
+
+    const updated: Order = {
+      ...target,
+      status,
+    };
+
+    writeOrders(orders.map((order) => (order.id === orderId ? updated : order)));
+    return updated;
   },
 
   async updateUserRole(userId: string, isAdmin: boolean): Promise<AdminUserRecord | null> {

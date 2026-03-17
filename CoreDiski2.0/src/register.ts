@@ -28,10 +28,10 @@ app.innerHTML = `
         <p>Register before adding items to cart or purchasing.</p>
         <form id="register-form" class="auth-form">
           <label>Full Name
-            <input id="full-name" type="text" required minlength="2" placeholder="John Doe" />
+            <input id="full-name" type="text" required minlength="2" placeholder=" " />
           </label>
           <label>Email Address
-            <input id="email" type="email" required placeholder="you@email.com" />
+            <input id="email" type="email" required placeholder=" " />
           </label>
           <label>Password
             <div class="password-field">
@@ -70,6 +70,7 @@ form?.addEventListener('submit', async (event) => {
   if (status) {
     status.className = 'status success';
     status.textContent = 'Account created. Please verify your email via the link sent before signing in.';
+<<<<<<< codex/fetch-latest-changes-using-git-fetch-ajqeph
   }
 
   setTimeout(() => {
@@ -88,4 +89,11 @@ togglePassword?.addEventListener('click', () => {
   password.type = showing ? 'password' : 'text';
   togglePassword.setAttribute('aria-pressed', String(!showing));
   togglePassword.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+=======
+  }
+
+  setTimeout(() => {
+    window.location.href = `/signin.html?email=${encodeURIComponent(email?.value ?? '')}`;
+  }, 900);
+>>>>>>> main
 });
