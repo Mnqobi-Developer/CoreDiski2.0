@@ -54,10 +54,11 @@ app.innerHTML = `
         <div class="toolbar">
           <input id="search-input" class="control search" type="search" placeholder="Search clubs, players, seasons, leagues..." />
           <select id="price-filter" class="control">
-            <option value="all">R0 - R500</option>
-            <option value="0-200">R0 - R200</option>
-            <option value="201-300">R201 - R300</option>
-            <option value="301-500">R301 - R500</option>
+            <option value="all">All prices</option>
+            <option value="0-500">R0 - R500</option>
+            <option value="500-1000">R500 - R1000</option>
+            <option value="1000-1500">R1000 - R1500</option>
+            <option value="1500+">R1500+</option>
           </select>
           <select id="sort-filter" class="control">
             <option value="popular">Most Popular</option>
@@ -112,6 +113,12 @@ const inSelectedEra = (shirt: Shirt, era: string) => {
 
 const inPriceRange = (shirt: Shirt, range: string) => {
   if (range === 'all') return true;
+
+  if (range.endsWith('+')) {
+    const min = Number(range.replace('+', ''));
+    return shirt.price >= min;
+  }
+
   const [min, max] = range.split('-').map(Number);
   return shirt.price >= min && shirt.price <= max;
 };
