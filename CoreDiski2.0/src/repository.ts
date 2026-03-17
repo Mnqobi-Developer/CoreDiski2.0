@@ -1,4 +1,5 @@
 import { seedShirts } from './data';
+import { hasSupabaseConfig, supabaseBaseUrl, supabaseHeaders } from './supabase';
 import type {
   AuthSession,
   CartItem,
@@ -14,8 +15,11 @@ import type {
   PaymentGatewayResult,
   PaymentMethod,
   OutgoingEmail,
+<<<<<<< codex/fetch-latest-changes-using-git-fetch-ajqeph
+=======
   AdminSettings,
   UpdateAdminSettingsInput,
+>>>>>>> main
 } from './types';
 
 const SHIRTS_KEY = 'corediski_shirts';
@@ -29,7 +33,10 @@ const PAYMENT_TRANSACTIONS_KEY = 'corediski_payment_transactions';
 const YOCO_PUBLIC_KEY = 'pk_test_corediski_yoco';
 const YOCO_PAYMENT_PAGE_URL = 'https://pay.yoco.com/corediski';
 const EMAIL_OUTBOX_KEY = 'corediski_email_outbox';
+<<<<<<< codex/fetch-latest-changes-using-git-fetch-ajqeph
+=======
 const ADMIN_SETTINGS_KEY = 'corediski_admin_settings';
+>>>>>>> main
 
 const randomId = () =>
   typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -138,6 +145,8 @@ const emailService = {
     return message;
   },
 };
+<<<<<<< codex/fetch-latest-changes-using-git-fetch-ajqeph
+=======
 
 
 
@@ -196,10 +205,46 @@ const writeAdminSettings = (input: UpdateAdminSettingsInput): AdminSettings => {
     ...input,
     updatedAt: new Date().toISOString(),
   };
+>>>>>>> main
 
   localStorage.setItem(ADMIN_SETTINGS_KEY, JSON.stringify(settings));
   return settings;
 };
+
+
+
+const toShirt = (row: {
+  id: string;
+  club_or_nation: string;
+  title: string;
+  season: string;
+  variant: string;
+  price: number;
+  image_url: string;
+  tags: string[] | null;
+  featured: boolean | null;
+}): Shirt => ({
+  id: row.id,
+  clubOrNation: row.club_or_nation,
+  title: row.title,
+  season: row.season,
+  variant: row.variant,
+  price: Number(row.price),
+  imageUrl: row.image_url,
+  tags: row.tags ?? [],
+  featured: row.featured ?? false,
+});
+
+const toShirtInsert = (input: CreateShirtInput) => ({
+  club_or_nation: input.clubOrNation,
+  title: input.title,
+  season: input.season,
+  variant: input.variant,
+  price: input.price,
+  image_url: input.imageUrl,
+  tags: input.tags,
+  featured: input.featured ?? false,
+});
 
 const readUsers = (): UserAccount[] => {
   const users = readJsonArray<UserAccount>(USERS_KEY);
@@ -250,6 +295,42 @@ const readUsers = (): UserAccount[] => {
 export const shirtRepository = {
   async list(search = ''): Promise<Shirt[]> {
     const normalized = search.trim().toLowerCase();
+
+    if (hasSupabaseConfig) {
+      const response = await fetch(
+        `${supabaseBaseUrl}/rest/v1/shirts?select=id,club_or_nation,title,season,variant,price,image_url,tags,featured`,
+        { headers: supabaseHeaders },
+      );
+
+      if (response.ok) {
+        const data = (await response.json()) as Array<{
+          id: string;
+          club_or_nation: string;
+          title: string;
+          season: string;
+          variant: string;
+          price: number;
+          image_url: string;
+          tags: string[] | null;
+          featured: boolean | null;
+        }>;
+
+        const shirts = data.map(toShirt);
+
+        if (!normalized) {
+          return shirts;
+        }
+
+        return shirts.filter((shirt) => {
+          const haystack = [shirt.clubOrNation, shirt.title, shirt.season, shirt.variant, ...shirt.tags]
+            .join(' ')
+            .toLowerCase();
+
+          return haystack.includes(normalized);
+        });
+      }
+    }
+
     const shirts = readShirts();
 
     if (!normalized) {
@@ -270,11 +351,62 @@ export const shirtRepository = {
       return null;
     }
 
+    if (hasSupabaseConfig) {
+      const response = await fetch(
+        `${supabaseBaseUrl}/rest/v1/shirts?select=id,club_or_nation,title,season,variant,price,image_url,tags,featured&id=eq.${encodeURIComponent(id)}&limit=1`,
+        { headers: supabaseHeaders },
+      );
+
+      if (response.ok) {
+        const data = (await response.json()) as Array<{
+          id: string;
+          club_or_nation: string;
+          title: string;
+          season: string;
+          variant: string;
+          price: number;
+          image_url: string;
+          tags: string[] | null;
+          featured: boolean | null;
+        }>;
+
+        if (data.length) {
+          return toShirt(data[0]);
+        }
+      }
+    }
+
     const shirts = readShirts();
     return shirts.find((shirt) => shirt.id === id) ?? null;
   },
 
   async create(input: CreateShirtInput): Promise<Shirt> {
+    if (hasSupabaseConfig) {
+      const response = await fetch(`${supabaseBaseUrl}/rest/v1/shirts?select=id,club_or_nation,title,season,variant,price,image_url,tags,featured`, {
+        method: 'POST',
+        headers: { ...supabaseHeaders, Prefer: 'return=representation' },
+        body: JSON.stringify(toShirtInsert(input)),
+      });
+
+      if (response.ok) {
+        const data = (await response.json()) as Array<{
+          id: string;
+          club_or_nation: string;
+          title: string;
+          season: string;
+          variant: string;
+          price: number;
+          image_url: string;
+          tags: string[] | null;
+          featured: boolean | null;
+        }>;
+
+        if (data.length) {
+          return toShirt(data[0]);
+        }
+      }
+    }
+
     const shirts = readShirts();
     const created: Shirt = {
       ...input,
@@ -287,6 +419,32 @@ export const shirtRepository = {
   },
 
   async update(id: string, input: CreateShirtInput): Promise<Shirt | null> {
+    if (hasSupabaseConfig) {
+      const response = await fetch(`${supabaseBaseUrl}/rest/v1/shirts?select=id,club_or_nation,title,season,variant,price,image_url,tags,featured&id=eq.${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        headers: { ...supabaseHeaders, Prefer: 'return=representation' },
+        body: JSON.stringify(toShirtInsert(input)),
+      });
+
+      if (response.ok) {
+        const data = (await response.json()) as Array<{
+          id: string;
+          club_or_nation: string;
+          title: string;
+          season: string;
+          variant: string;
+          price: number;
+          image_url: string;
+          tags: string[] | null;
+          featured: boolean | null;
+        }>;
+
+        if (data.length) {
+          return toShirt(data[0]);
+        }
+      }
+    }
+
     const shirts = readShirts();
     const existing = shirts.find((shirt) => shirt.id === id);
 
@@ -304,6 +462,7 @@ export const shirtRepository = {
     return updatedShirt;
   },
 };
+
 
 export const cartRepository = {
   async list(): Promise<CartItem[]> {

@@ -108,19 +108,3 @@ export type OutgoingEmail = {
   body: string;
   sentAt: string;
 };
-
-export type AdminSettings = {
-  storeName: string;
-  supportEmail: string;
-  supportPhone: string;
-  currency: 'ZAR' | 'USD' | 'EUR';
-  taxRate: number;
-  shippingFlatRate: number;
-  lowStockThreshold: number;
-  maintenanceMode: boolean;
-  orderNotifications: boolean;
-  newsletterDoubleOptIn: boolean;
-  updatedAt: string;
-};
-
-export type UpdateAdminSettingsInput = Omit<AdminSettings, 'updatedAt'>;
