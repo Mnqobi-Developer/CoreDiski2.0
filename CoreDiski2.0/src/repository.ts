@@ -1,4 +1,5 @@
 import { seedShirts } from './data';
+import { hasSupabaseConfig, supabaseBaseUrl, supabaseHeaders } from './supabase';
 import type {
   AuthSession,
   CartItem,
@@ -9,6 +10,11 @@ import type {
   UserAccount,
   WishlistItem,
   AdminUserRecord,
+  Order,
+  PaymentGatewayRequest,
+  PaymentGatewayResult,
+  PaymentMethod,
+  OutgoingEmail,
 } from './types';
 
 const SHIRTS_KEY = 'corediski_shirts';
@@ -17,6 +23,11 @@ const CART_KEY = 'corediski_cart';
 const WISHLIST_KEY = 'corediski_wishlist';
 const USERS_KEY = 'corediski_users';
 const SESSION_KEY = 'corediski_session';
+const ORDERS_KEY = 'corediski_orders';
+const PAYMENT_TRANSACTIONS_KEY = 'corediski_payment_transactions';
+const YOCO_PUBLIC_KEY = 'pk_test_corediski_yoco';
+const YOCO_PAYMENT_PAGE_URL = 'https://pay.yoco.com/corediski';
+const EMAIL_OUTBOX_KEY = 'corediski_email_outbox';
 
 const randomId = () =>
   typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -77,6 +88,10 @@ const writeUsers = (users: UserAccount[]) => {
   localStorage.setItem(USERS_KEY, JSON.stringify(users));
 };
 
+const writeOrders = (orders: Order[]) => {
+  localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
+};
+
 const writeSession = (session: AuthSession | null) => {
   if (!session) {
     localStorage.removeItem(SESSION_KEY);
@@ -100,25 +115,199 @@ const readSession = (): AuthSession | null => {
   }
 };
 
+const buildVerificationUrl = (token: string) =>
+  `${window.location.origin}/verify-email.html?token=${encodeURIComponent(token)}`;
 
+const emailService = {
+  async sendVerificationEmail(fullName: string, email: string, token: string): Promise<OutgoingEmail> {
+    const verificationUrl = buildVerificationUrl(token);
+    const message: OutgoingEmail = {
+      id: randomId(),
+      to: email,
+      subject: 'Verify your Core Diski account',
+      body: `Hi ${fullName}, verify your account: ${verificationUrl}`,
+      sentAt: new Date().toISOString(),
+    };
+
+    const outbox = readJsonArray<OutgoingEmail>(EMAIL_OUTBOX_KEY);
+    localStorage.setItem(EMAIL_OUTBOX_KEY, JSON.stringify([message, ...outbox]));
+    return message;
+  },
+};
+
+
+
+
+const toShirt = (row: {
+  id: string;
+  club_or_nation: string;
+  title: string;
+  season: string;
+  variant: string;
+  price: number;
+  image_url: string;
+  tags: string[] | null;
+  featured: boolean | null;
+}): Shirt => ({
+  id: row.id,
+  clubOrNation: row.club_or_nation,
+  title: row.title,
+  season: row.season,
+  variant: row.variant,
+  price: Number(row.price),
+  imageUrl: row.image_url,
+  tags: row.tags ?? [],
+  featured: row.featured ?? false,
+});
+
+const toShirtInsert = (input: CreateShirtInput) => ({
+  club_or_nation: input.clubOrNation,
+  title: input.title,
+  season: input.season,
+  variant: input.variant,
+  price: input.price,
+  image_url: input.imageUrl,
+  tags: input.tags,
+  featured: input.featured ?? false,
+});
+
+const getSupabaseRestHeaders = () => {
+  const session = readSession();
+  const accessToken = session?.accessToken;
+
+  return {
+    apikey: supabaseHeaders.apikey,
+    Authorization: `Bearer ${accessToken || supabaseHeaders.apikey}`,
+    'Content-Type': 'application/json',
+  };
+};
+
+const supabaseAuthHeaders = {
+  apikey: supabaseHeaders.apikey,
+  Authorization: `Bearer ${supabaseHeaders.apikey}`,
+  'Content-Type': 'application/json',
+};
+
+type SupabaseAuthUser = {
+  id: string;
+  email?: string;
+  created_at?: string;
+  email_confirmed_at?: string | null;
+  user_metadata?: {
+    full_name?: string;
+    phone?: string;
+    address?: string;
+    email_preferences?: string;
+  };
+};
+
+const getSupabaseUser = async (accessToken: string): Promise<SupabaseAuthUser | null> => {
+  const response = await fetch(`${supabaseBaseUrl}/auth/v1/user`, {
+    headers: { ...supabaseAuthHeaders, Authorization: `Bearer ${accessToken}` },
+  });
+
+  if (!response.ok) {
+    return null;
+  }
+
+  return (await response.json()) as SupabaseAuthUser;
+};
+
+const isSupabaseAdmin = async (userId: string, accessToken: string): Promise<boolean> => {
+  const response = await fetch(
+    `${supabaseBaseUrl}/rest/v1/admin_users?select=user_id&user_id=eq.${encodeURIComponent(userId)}&limit=1`,
+    { headers: { ...getSupabaseRestHeaders(), Authorization: `Bearer ${accessToken}` } },
+  );
+
+  if (!response.ok) {
+    return false;
+  }
+
+  const data = (await response.json()) as Array<{ user_id: string }>;
+  return data.length > 0;
+};
+
+const toSupabaseAccount = (user: SupabaseAuthUser, isAdmin: boolean): UserAccount => ({
+  id: user.id,
+  fullName: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Core Diski User',
+  email: user.email || '',
+  createdAt: user.created_at || new Date().toISOString(),
+  isAdmin,
+  emailVerified: Boolean(user.email_confirmed_at),
+  phone: user.user_metadata?.phone || '',
+  address: user.user_metadata?.address || '',
+  emailPreferences: user.user_metadata?.email_preferences || '',
+});
+
+const extractSupabaseError = async (response: Response, fallback: string): Promise<string> => {
+  const raw = await response.text();
+
+  if (!raw) {
+    return fallback;
+  }
+
+  try {
+    const payload = JSON.parse(raw) as { message?: string; hint?: string; details?: string; error_description?: string };
+    return payload.message || payload.error_description || payload.details || payload.hint || fallback;
+  } catch {
+    return raw || fallback;
+  }
+};
+
+type SupabaseShirtRow = {
+  id: string;
+  club_or_nation: string;
+  title: string;
+  season: string;
+  variant: string;
+  price: number;
+  image_url: string;
+  tags: string[] | null;
+  featured: boolean | null;
+};
 
 const readUsers = (): UserAccount[] => {
   const users = readJsonArray<UserAccount>(USERS_KEY);
 
-  if (users.some((user) => user.email.toLowerCase() === 'admin@corediski.com')) {
+  const seedAccounts: UserAccount[] = [
+    {
+      id: randomId(),
+      fullName: 'Core Diski Admin',
+      email: 'admin@corediski.com',
+      password: 'Admin@12345',
+      createdAt: new Date().toISOString(),
+      isAdmin: true,
+      emailVerified: true,
+    },
+    {
+      id: randomId(),
+      fullName: 'Lenka Ntereke',
+      email: 'Lenkantereke25@gmail.com',
+      password: 'Germansteel@25',
+      createdAt: new Date().toISOString(),
+      isAdmin: false,
+      emailVerified: true,
+    },
+    {
+      id: randomId(),
+      fullName: 'Roberto Fentse Nkomo',
+      email: 'Robertofentsenkomo@gmail.com',
+      password: 'FentseNkomo',
+      createdAt: new Date().toISOString(),
+      isAdmin: true,
+      emailVerified: true,
+    },
+  ];
+
+  const missing = seedAccounts.filter(
+    (account) => !users.some((user) => user.email.toLowerCase() === account.email.toLowerCase()),
+  );
+
+  if (!missing.length) {
     return users;
   }
 
-  const adminUser: UserAccount = {
-    id: randomId(),
-    fullName: 'Core Diski Admin',
-    email: 'admin@corediski.com',
-    password: 'Admin@12345',
-    createdAt: new Date().toISOString(),
-    isAdmin: true,
-  };
-
-  const seeded = [adminUser, ...users];
+  const seeded = [...missing, ...users];
   writeUsers(seeded);
   return seeded;
 };
@@ -126,6 +315,34 @@ const readUsers = (): UserAccount[] => {
 export const shirtRepository = {
   async list(search = ''): Promise<Shirt[]> {
     const normalized = search.trim().toLowerCase();
+
+    if (hasSupabaseConfig) {
+      const response = await fetch(
+        `${supabaseBaseUrl}/rest/v1/shirts?select=id,club_or_nation,title,season,variant,price,image_url,tags,featured`,
+        { headers: getSupabaseRestHeaders() },
+      );
+
+      if (!response.ok) {
+        throw new Error(await extractSupabaseError(response, 'Unable to load products from Supabase.'));
+      }
+
+      const data = (await response.json()) as SupabaseShirtRow[];
+
+      const shirts = data.map(toShirt);
+
+      if (!normalized) {
+        return shirts;
+      }
+
+      return shirts.filter((shirt) => {
+        const haystack = [shirt.clubOrNation, shirt.title, shirt.season, shirt.variant, ...shirt.tags]
+          .join(' ')
+          .toLowerCase();
+
+        return haystack.includes(normalized);
+      });
+    }
+
     const shirts = readShirts();
 
     if (!normalized) {
@@ -146,11 +363,50 @@ export const shirtRepository = {
       return null;
     }
 
+    if (hasSupabaseConfig) {
+      const response = await fetch(
+        `${supabaseBaseUrl}/rest/v1/shirts?select=id,club_or_nation,title,season,variant,price,image_url,tags,featured&id=eq.${encodeURIComponent(id)}&limit=1`,
+        { headers: getSupabaseRestHeaders() },
+      );
+
+      if (!response.ok) {
+        throw new Error(await extractSupabaseError(response, 'Unable to load product from Supabase.'));
+      }
+
+      const data = (await response.json()) as SupabaseShirtRow[];
+
+      if (data.length) {
+        return toShirt(data[0]);
+      }
+
+      return null;
+    }
+
     const shirts = readShirts();
     return shirts.find((shirt) => shirt.id === id) ?? null;
   },
 
   async create(input: CreateShirtInput): Promise<Shirt> {
+    if (hasSupabaseConfig) {
+      const response = await fetch(`${supabaseBaseUrl}/rest/v1/shirts?select=id,club_or_nation,title,season,variant,price,image_url,tags,featured`, {
+        method: 'POST',
+        headers: { ...getSupabaseRestHeaders(), Prefer: 'return=representation' },
+        body: JSON.stringify(toShirtInsert(input)),
+      });
+
+      if (!response.ok) {
+        throw new Error(await extractSupabaseError(response, 'Unable to create product in Supabase.'));
+      }
+
+      const data = (await response.json()) as SupabaseShirtRow[];
+
+      if (data.length) {
+        return toShirt(data[0]);
+      }
+
+      throw new Error('Supabase did not return the created product record.');
+    }
+
     const shirts = readShirts();
     const created: Shirt = {
       ...input,
@@ -163,6 +419,26 @@ export const shirtRepository = {
   },
 
   async update(id: string, input: CreateShirtInput): Promise<Shirt | null> {
+    if (hasSupabaseConfig) {
+      const response = await fetch(`${supabaseBaseUrl}/rest/v1/shirts?select=id,club_or_nation,title,season,variant,price,image_url,tags,featured&id=eq.${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        headers: { ...getSupabaseRestHeaders(), Prefer: 'return=representation' },
+        body: JSON.stringify(toShirtInsert(input)),
+      });
+
+      if (!response.ok) {
+        throw new Error(await extractSupabaseError(response, 'Unable to update product in Supabase.'));
+      }
+
+      const data = (await response.json()) as SupabaseShirtRow[];
+
+      if (data.length) {
+        return toShirt(data[0]);
+      }
+
+      return null;
+    }
+
     const shirts = readShirts();
     const existing = shirts.find((shirt) => shirt.id === id);
 
@@ -180,6 +456,7 @@ export const shirtRepository = {
     return updatedShirt;
   },
 };
+
 
 export const cartRepository = {
   async list(): Promise<CartItem[]> {
@@ -267,13 +544,56 @@ export const wishlistRepository = {
 
 export const authRepository = {
   async register(fullName: string, email: string, password: string): Promise<{ user?: UserAccount; error?: string }> {
-    const users = readUsers();
     const normalizedEmail = email.trim().toLowerCase();
+
+    if (hasSupabaseConfig) {
+      const response = await fetch(`${supabaseBaseUrl}/auth/v1/signup`, {
+        method: 'POST',
+        headers: supabaseAuthHeaders,
+        body: JSON.stringify({
+          email: normalizedEmail,
+          password,
+          data: { full_name: fullName.trim() },
+          email_redirect_to: `${window.location.origin}/verify-email.html`,
+        }),
+      });
+
+      if (!response.ok) {
+        return { error: await extractSupabaseError(response, 'Unable to create account.') };
+      }
+
+      const payload = (await response.json()) as {
+        user?: SupabaseAuthUser;
+        session?: { access_token: string; refresh_token?: string } | null;
+      };
+
+      if (!payload.user) {
+        return { error: 'Unable to create account.' };
+      }
+
+      if (payload.session?.access_token) {
+        writeSession({
+          userId: payload.user.id,
+          signedInAt: new Date().toISOString(),
+          accessToken: payload.session.access_token,
+          refreshToken: payload.session.refresh_token,
+        });
+      }
+
+      const isAdmin = payload.session?.access_token
+        ? await isSupabaseAdmin(payload.user.id, payload.session.access_token)
+        : false;
+
+      return { user: toSupabaseAccount(payload.user, isAdmin) };
+    }
+
+    const users = readUsers();
 
     if (users.some((user) => user.email.toLowerCase() === normalizedEmail)) {
       return { error: 'An account with this email already exists.' };
     }
 
+    const verificationToken = randomId();
     const user: UserAccount = {
       id: randomId(),
       fullName: fullName.trim(),
@@ -281,21 +601,61 @@ export const authRepository = {
       password,
       createdAt: new Date().toISOString(),
       isAdmin: false,
+      emailVerified: false,
+      emailVerificationToken: verificationToken,
+      emailVerificationSentAt: new Date().toISOString(),
     };
 
     writeUsers([user, ...users]);
-    writeSession({ userId: user.id, signedInAt: new Date().toISOString() });
+    await emailService.sendVerificationEmail(user.fullName, user.email, verificationToken);
 
     return { user };
   },
 
   async signIn(email: string, password: string): Promise<{ user?: UserAccount; error?: string }> {
-    const users = readUsers();
     const normalizedEmail = email.trim().toLowerCase();
+
+    if (hasSupabaseConfig) {
+      const response = await fetch(`${supabaseBaseUrl}/auth/v1/token?grant_type=password`, {
+        method: 'POST',
+        headers: supabaseAuthHeaders,
+        body: JSON.stringify({ email: normalizedEmail, password }),
+      });
+
+      if (!response.ok) {
+        return { error: await extractSupabaseError(response, 'Invalid email or password.') };
+      }
+
+      const payload = (await response.json()) as {
+        access_token?: string;
+        refresh_token?: string;
+        user?: SupabaseAuthUser;
+      };
+
+      if (!payload.access_token || !payload.user) {
+        return { error: 'Unable to sign in.' };
+      }
+
+      writeSession({
+        userId: payload.user.id,
+        signedInAt: new Date().toISOString(),
+        accessToken: payload.access_token,
+        refreshToken: payload.refresh_token,
+      });
+
+      const isAdmin = await isSupabaseAdmin(payload.user.id, payload.access_token);
+      return { user: toSupabaseAccount(payload.user, isAdmin) };
+    }
+
+    const users = readUsers();
     const user = users.find((entry) => entry.email.toLowerCase() === normalizedEmail && entry.password === password);
 
     if (!user) {
       return { error: 'Invalid email or password.' };
+    }
+
+    if (!user.emailVerified && !user.isAdmin) {
+      return { error: 'Please verify your email before signing in.' };
     }
 
     writeSession({ userId: user.id, signedInAt: new Date().toISOString() });
@@ -309,11 +669,25 @@ export const authRepository = {
       return null;
     }
 
+    if (hasSupabaseConfig) {
+      if (!session.accessToken) {
+        return null;
+      }
+
+      const user = await getSupabaseUser(session.accessToken);
+
+      if (!user) {
+        writeSession(null);
+        return null;
+      }
+
+      const isAdmin = await isSupabaseAdmin(user.id, session.accessToken);
+      return toSupabaseAccount(user, isAdmin);
+    }
+
     const users = readUsers();
     return users.find((user) => user.id === session.userId) ?? null;
   },
-
-
 
   async updateCurrentUser(
     updates: Pick<UserAccount, 'fullName' | 'email' | 'phone' | 'address' | 'emailPreferences'>,
@@ -322,6 +696,34 @@ export const authRepository = {
 
     if (!session) {
       return { error: 'You must be signed in to update your profile.' };
+    }
+
+    if (hasSupabaseConfig) {
+      if (!session.accessToken) {
+        return { error: 'Your session has expired. Please sign in again.' };
+      }
+
+      const response = await fetch(`${supabaseBaseUrl}/auth/v1/user`, {
+        method: 'PUT',
+        headers: { ...supabaseAuthHeaders, Authorization: `Bearer ${session.accessToken}` },
+        body: JSON.stringify({
+          email: updates.email.trim().toLowerCase(),
+          data: {
+            full_name: updates.fullName.trim(),
+            phone: updates.phone?.trim() || '',
+            address: updates.address?.trim() || '',
+            email_preferences: updates.emailPreferences?.trim() || '',
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        return { error: await extractSupabaseError(response, 'Unable to update your profile.') };
+      }
+
+      const user = (await response.json()) as SupabaseAuthUser;
+      const isAdmin = await isSupabaseAdmin(user.id, session.accessToken);
+      return { user: toSupabaseAccount(user, isAdmin) };
     }
 
     const users = readUsers();
@@ -351,12 +753,127 @@ export const authRepository = {
     return { user: updatedUser };
   },
 
+  async completeSupabaseSessionFromUrl(hashFragment: string): Promise<{ user?: UserAccount; error?: string }> {
+    if (!hasSupabaseConfig) {
+      return { error: 'Supabase authentication is not configured.' };
+    }
+
+    const fragment = hashFragment.startsWith('#') ? hashFragment.slice(1) : hashFragment;
+    const params = new URLSearchParams(fragment);
+    const accessToken = params.get('access_token') || '';
+    const refreshToken = params.get('refresh_token') || '';
+
+    if (!accessToken) {
+      return { error: 'Verification link is missing session tokens. Please request a new verification email.' };
+    }
+
+    const user = await getSupabaseUser(accessToken);
+
+    if (!user) {
+      return { error: 'Unable to validate verification session. Please sign in manually.' };
+    }
+
+    writeSession({
+      userId: user.id,
+      signedInAt: new Date().toISOString(),
+      accessToken,
+      refreshToken,
+    });
+
+    const isAdmin = await isSupabaseAdmin(user.id, accessToken);
+    return { user: toSupabaseAccount(user, isAdmin) };
+  },
+
+  async verifyEmail(token: string): Promise<{ user?: UserAccount; error?: string }> {
+    if (hasSupabaseConfig) {
+      return { error: 'Email verification is managed by Supabase. Please use the verification link in your inbox, then sign in.' };
+    }
+
+    const trimmedToken = token.trim();
+
+    if (!trimmedToken) {
+      return { error: 'Invalid verification token.' };
+    }
+
+    const users = readUsers();
+    const user = users.find((entry) => entry.emailVerificationToken === trimmedToken);
+
+    if (!user) {
+      return { error: 'Verification link is invalid or expired.' };
+    }
+
+    const updatedUser: UserAccount = {
+      ...user,
+      emailVerified: true,
+      emailVerificationToken: '',
+    };
+
+    writeUsers(users.map((entry) => (entry.id === user.id ? updatedUser : entry)));
+    writeSession({ userId: updatedUser.id, signedInAt: new Date().toISOString() });
+
+    return { user: updatedUser };
+  },
+
+  async resendVerificationEmail(email: string): Promise<{ ok?: boolean; error?: string }> {
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (hasSupabaseConfig) {
+      const response = await fetch(`${supabaseBaseUrl}/auth/v1/resend`, {
+        method: 'POST',
+        headers: supabaseAuthHeaders,
+        body: JSON.stringify({
+          type: 'signup',
+          email: normalizedEmail,
+          email_redirect_to: `${window.location.origin}/verify-email.html`,
+        }),
+      });
+
+      if (!response.ok) {
+        return { error: await extractSupabaseError(response, 'Unable to resend verification email.') };
+      }
+
+      return { ok: true };
+    }
+
+    const users = readUsers();
+    const user = users.find((entry) => entry.email.toLowerCase() === normalizedEmail);
+
+    if (!user) {
+      return { error: 'Unable to find an account with that email.' };
+    }
+
+    if (user.emailVerified || user.isAdmin) {
+      return { ok: true };
+    }
+
+    const verificationToken = randomId();
+    const updatedUser: UserAccount = {
+      ...user,
+      emailVerificationToken: verificationToken,
+      emailVerificationSentAt: new Date().toISOString(),
+    };
+
+    writeUsers(users.map((entry) => (entry.id === user.id ? updatedUser : entry)));
+    await emailService.sendVerificationEmail(updatedUser.fullName, updatedUser.email, verificationToken);
+
+    return { ok: true };
+  },
+
   async isSignedIn(): Promise<boolean> {
     const user = await this.getCurrentUser();
     return Boolean(user);
   },
 
   async signOut(): Promise<void> {
+    const session = readSession();
+
+    if (hasSupabaseConfig && session?.accessToken) {
+      await fetch(`${supabaseBaseUrl}/auth/v1/logout`, {
+        method: 'POST',
+        headers: { ...supabaseAuthHeaders, Authorization: `Bearer ${session.accessToken}` },
+      });
+    }
+
     writeSession(null);
   },
 };
@@ -414,6 +931,154 @@ export const adminRepository = {
     }
 
     return true;
+  },
+};
+
+
+export const yocoGateway = {
+  async processPayment(input: PaymentGatewayRequest): Promise<PaymentGatewayResult> {
+    if (input.provider !== 'yoco') {
+      return { success: false, provider: 'yoco', message: 'Unsupported payment provider.' };
+    }
+
+    if (input.amount <= 0) {
+      return { success: false, provider: 'yoco', message: 'Payment amount must be greater than zero.' };
+    }
+
+    if (input.method !== 'yoco_hosted') {
+      return { success: false, provider: 'yoco', message: 'Only Yoco hosted checkout is supported.' };
+    }
+
+    if (!input.customerEmail.includes('@')) {
+      return { success: false, provider: 'yoco', message: 'A valid email is required for Yoco checkout.' };
+    }
+
+    const checkoutId = `yoco_chk_${Date.now()}_${Math.random().toString(16).slice(2, 8)}`;
+    const transactionId = `yoco_pay_${Date.now()}_${Math.random().toString(16).slice(2, 8)}`;
+    const transactions = readJsonArray<{
+      id: string;
+      amount: number;
+      currency: 'ZAR';
+      method: PaymentMethod;
+      customerEmail: string;
+      createdAt: string;
+      status: 'initiated';
+      provider: 'yoco';
+      checkoutId: string;
+      checkoutUrl: string;
+      publicKey: string;
+    }>(PAYMENT_TRANSACTIONS_KEY);
+
+    const record = {
+      id: transactionId,
+      amount: input.amount,
+      currency: input.currency,
+      method: input.method,
+      customerEmail: input.customerEmail.trim().toLowerCase(),
+      createdAt: new Date().toISOString(),
+      status: 'initiated' as const,
+      provider: 'yoco' as const,
+      checkoutId,
+      checkoutUrl: YOCO_PAYMENT_PAGE_URL,
+      publicKey: YOCO_PUBLIC_KEY,
+    };
+
+    localStorage.setItem(PAYMENT_TRANSACTIONS_KEY, JSON.stringify([record, ...transactions]));
+
+    return {
+      success: true,
+      provider: 'yoco',
+      checkoutId,
+      checkoutUrl: YOCO_PAYMENT_PAGE_URL,
+      transactionId,
+      message: 'Redirecting to Yoco secure checkout.',
+    };
+  },
+};
+
+
+
+export const orderRepository = {
+  async listCurrentUser(): Promise<Order[]> {
+    const session = readSession();
+
+    if (!session) {
+      return [];
+    }
+
+    const orders = readJsonArray<Order>(ORDERS_KEY);
+    return orders.filter((order) => order.userId === session.userId);
+  },
+
+  async createCurrentUserOrder(input: {
+    customerName: string;
+    customerEmail: string;
+    shippingAddress: string;
+    billingAddress: string;
+    shippingMethod: string;
+    paymentMethod: PaymentMethod;
+    paymentReference: string;
+    status?: Order['status'];
+  }): Promise<{ order?: Order; error?: string }> {
+    const session = readSession();
+
+    if (!session) {
+      return { error: 'You must be signed in to place an order.' };
+    }
+
+    const cartItems = readJsonArray<CartItem>(CART_KEY);
+
+    if (!cartItems.length) {
+      return { error: 'Your cart is empty.' };
+    }
+
+    const shirts = readShirts();
+    const validItems = cartItems
+      .map((item) => {
+        const shirt = shirts.find((entry) => entry.id === item.shirtId);
+
+        if (!shirt) {
+          return null;
+        }
+
+        return {
+          shirtId: shirt.id,
+          size: item.size,
+          quantity: item.quantity,
+          unitPrice: shirt.price,
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => Boolean(item));
+
+    if (!validItems.length) {
+      return { error: 'Unable to create an order because cart items are unavailable.' };
+    }
+
+    const subtotal = validItems.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
+    const shippingCost = 0;
+    const order: Order = {
+      id: randomId(),
+      userId: session.userId,
+      customerName: input.customerName.trim(),
+      customerEmail: input.customerEmail.trim().toLowerCase(),
+      shippingAddress: input.shippingAddress.trim(),
+      billingAddress: input.billingAddress.trim(),
+      shippingMethod: input.shippingMethod,
+      paymentMethod: input.paymentMethod,
+      paymentReference: input.paymentReference,
+      subtotal,
+      shippingCost,
+      total: subtotal + shippingCost,
+      status: input.status ?? 'paid',
+      createdAt: new Date().toISOString(),
+      items: validItems,
+    };
+
+    const orders = readJsonArray<Order>(ORDERS_KEY);
+    writeOrders([order, ...orders]);
+    writeCart([]);
+
+    return { order };
   },
 };
 

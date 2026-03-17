@@ -10,7 +10,7 @@ if (!app) {
   throw new Error('App container not found');
 }
 
-const money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+const money = new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR', maximumFractionDigits: 0 });
 
 const renderPage = async () => {
   const signedIn = await requireSignedIn();
@@ -98,7 +98,7 @@ const renderPage = async () => {
   `;
 
   app.querySelector('.checkout')?.addEventListener('click', () => {
-    window.alert('Checkout flow coming next. You are signed in and ready to purchase.');
+    window.location.href = '/checkout.html';
   });
 
   app.querySelector('#clear-cart')?.addEventListener('click', async () => {
