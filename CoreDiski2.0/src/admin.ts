@@ -38,6 +38,8 @@ const pageTitleMap: Record<string, string> = {
 let editingProductId: string | null = null;
 let customerQuery = '';
 let customerRoleFilter: 'all' | 'admin' | 'customer' = 'all';
+let orderQuery = '';
+let orderStatusFilter: 'all' | 'pending' | 'paid' = 'all';
 
 const escapeHtml = (value: string) =>
   value
@@ -355,6 +357,90 @@ const renderCustomersManager = async () => {
 
 
 
+const renderOrdersManager = async () => {
+  const orders = await adminRepository.listOrders();
+  const filteredOrders = orders
+    .filter((order) => {
+      if (orderStatusFilter === 'all') return true;
+      return order.status === orderStatusFilter;
+    })
+    .filter((order) => {
+      if (!orderQuery.trim()) return true;
+      const needle = orderQuery.trim().toLowerCase();
+      return [order.customerName, order.customerEmail, order.shippingAddress, order.id].join(' ').toLowerCase().includes(needle);
+    })
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+  const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
+  const paidOrders = orders.filter((order) => order.status === 'paid').length;
+  const pendingOrders = orders.filter((order) => order.status === 'pending').length;
+  const averageOrderValue = orders.length ? Math.round(totalRevenue / orders.length) : 0;
+
+  const ordersMarkup = filteredOrders.length
+    ? filteredOrders
+        .map(
+          (order) => `
+            <tr>
+              <td>#${escapeHtml(order.id.slice(-6).toUpperCase())}</td>
+              <td>
+                <strong>${escapeHtml(order.customerName)}</strong>
+                <br/>
+                <small>${escapeHtml(order.customerEmail)}</small>
+              </td>
+              <td>${order.items.reduce((sum, item) => sum + item.quantity, 0)} item(s)</td>
+              <td>${money.format(order.total)}</td>
+              <td><span class="status-pill ${statusTone(order.status)}">${statusLabel(order.status)}</span></td>
+              <td>${formatDate(order.createdAt)}</td>
+              <td class="order-actions">
+                <button class="secondary toggle-order-status" data-order-id="${order.id}" data-next-status="${order.status === 'pending' ? 'paid' : 'pending'}" type="button">
+                  ${order.status === 'pending' ? 'Mark Paid' : 'Mark Pending'}
+                </button>
+              </td>
+            </tr>`,
+        )
+        .join('')
+    : '<tr><td colspan="7">No orders match your current filters.</td></tr>';
+
+  return `
+    <h1 class="section-title">Orders</h1>
+
+    <section class="metrics">
+      <article class="metric-card"><p class="label">Total Orders</p><p class="value">${orders.length}</p></article>
+      <article class="metric-card"><p class="label">Paid Orders</p><p class="value">${paidOrders}</p></article>
+      <article class="metric-card"><p class="label">Pending Orders</p><p class="value">${pendingOrders}</p></article>
+      <article class="metric-card"><p class="label">Avg. Order Value</p><p class="value">${money.format(averageOrderValue)}</p></article>
+    </section>
+
+    <section class="panel">
+      <h2 class="panel-title">Order Management</h2>
+      <p class="admin-helper">Filter, review, and update payment status for all store orders.</p>
+
+      <form id="orders-filter" class="orders-filter-row">
+        <input id="orders-query" type="search" placeholder="Search by order #, customer, email, or address..." value="${escapeHtml(orderQuery)}" />
+        <select id="orders-status-filter" name="statusFilter">
+          <option value="all" ${orderStatusFilter === 'all' ? 'selected' : ''}>All Statuses</option>
+          <option value="pending" ${orderStatusFilter === 'pending' ? 'selected' : ''}>Pending</option>
+          <option value="paid" ${orderStatusFilter === 'paid' ? 'selected' : ''}>Paid</option>
+        </select>
+        <button class="secondary" type="submit">Apply</button>
+      </form>
+
+      <p id="orders-status" class="status"></p>
+
+      <div class="panel-scroll">
+        <table class="table orders-table">
+          <thead>
+            <tr><th>Order</th><th>Customer</th><th>Items</th><th>Total</th><th>Status</th><th>Date</th><th>Action</th></tr>
+          </thead>
+          <tbody>
+            ${ordersMarkup}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  `;
+};
+
 const renderAnalyticsManager = async () => {
   const [shirts, users, orders] = await Promise.all([
     shirtRepository.list(),
@@ -577,6 +663,10 @@ const renderSection = async (pathname: string) => {
     return renderCustomersManager();
   }
 
+  if (pathname === '/admin-orders.html') {
+    return renderOrdersManager();
+  }
+
   if (pathname === '/admin-settings.html') {
     return renderSettingsManager();
   }
@@ -672,6 +762,41 @@ const bindProductsActions = () => {
   });
 };
 
+
+
+const bindOrdersActions = () => {
+  const status = document.querySelector<HTMLParagraphElement>('#orders-status');
+  const filterForm = document.querySelector<HTMLFormElement>('#orders-filter');
+  const queryInput = document.querySelector<HTMLInputElement>('#orders-query');
+  const statusFilter = document.querySelector<HTMLSelectElement>('#orders-status-filter');
+
+  filterForm?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    orderQuery = queryInput?.value ?? '';
+    const selected = statusFilter?.value;
+    orderStatusFilter = selected === 'pending' || selected === 'paid' ? selected : 'all';
+    await renderPage();
+  });
+
+  document.querySelectorAll<HTMLButtonElement>('.toggle-order-status').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const orderId = button.dataset.orderId;
+      const nextStatus = button.dataset.nextStatus;
+
+      if (!orderId || (nextStatus !== 'pending' && nextStatus !== 'paid')) {
+        return;
+      }
+
+      const updated = await adminRepository.updateOrderStatus(orderId, nextStatus);
+      if (status) {
+        status.className = updated ? 'status success' : 'status error';
+        status.textContent = updated ? `Order marked as ${nextStatus}.` : 'Unable to update order status.';
+      }
+
+      await renderPage();
+    });
+  });
+};
 
 const bindSettingsActions = () => {
   const form = document.querySelector<HTMLFormElement>('#settings-form');
@@ -841,6 +966,10 @@ const renderPage = async () => {
     if (currentRecord) {
       await bindCustomerActions(currentRecord);
     }
+  }
+
+  if (pathname === '/admin-orders.html') {
+    bindOrdersActions();
   }
 
   if (pathname === '/admin-settings.html') {

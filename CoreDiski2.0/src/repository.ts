@@ -574,6 +574,23 @@ export const adminRepository = {
     return readJsonArray<Order>(ORDERS_KEY);
   },
 
+  async updateOrderStatus(orderId: string, status: Order['status']): Promise<Order | null> {
+    const orders = readJsonArray<Order>(ORDERS_KEY);
+    const target = orders.find((order) => order.id === orderId);
+
+    if (!target) {
+      return null;
+    }
+
+    const updated: Order = {
+      ...target,
+      status,
+    };
+
+    writeOrders(orders.map((order) => (order.id === orderId ? updated : order)));
+    return updated;
+  },
+
   async updateUserRole(userId: string, isAdmin: boolean): Promise<AdminUserRecord | null> {
     const users = readUsers();
     const user = users.find((entry) => entry.id === userId);
