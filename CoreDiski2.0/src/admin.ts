@@ -354,6 +354,123 @@ const renderCustomersManager = async () => {
 };
 
 
+
+const renderAnalyticsManager = async () => {
+  const [shirts, users, orders] = await Promise.all([
+    shirtRepository.list(),
+    adminRepository.listUsers(),
+    adminRepository.listOrders(),
+  ]);
+
+  const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
+  const paidRevenue = orders.filter((order) => order.status === 'paid').reduce((sum, order) => sum + order.total, 0);
+  const averageOrderValue = orders.length ? Math.round(totalRevenue / orders.length) : 0;
+  const conversionBase = users.filter((user) => !user.isAdmin).length;
+  const conversionRate = conversionBase ? Math.min(100, Math.round((orders.length / conversionBase) * 100)) : 0;
+
+  const shirtById = new Map(shirts.map((shirt) => [shirt.id, shirt]));
+  const productSales = new Map<string, { title: string; units: number; revenue: number }>();
+
+  orders.forEach((order) => {
+    order.items.forEach((item) => {
+      const shirt = shirtById.get(item.shirtId);
+      if (!shirt) return;
+      const existing = productSales.get(item.shirtId) ?? { title: shirt.title, units: 0, revenue: 0 };
+      existing.units += item.quantity;
+      existing.revenue += item.quantity * item.unitPrice;
+      productSales.set(item.shirtId, existing);
+    });
+  });
+
+  const topProducts = [...productSales.values()].sort((a, b) => b.units - a.units).slice(0, 5);
+  const peakUnits = topProducts[0]?.units ?? 1;
+
+  const recentRevenue = [...orders]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 6)
+    .map((order) => ({
+      id: order.id,
+      customerName: order.customerName,
+      total: order.total,
+      status: order.status,
+      createdAt: order.createdAt,
+    }));
+
+  const topProductsMarkup = topProducts.length
+    ? topProducts
+        .map(
+          (entry) => `
+              <tr>
+                <td>${escapeHtml(entry.title)}</td>
+                <td>${entry.units}</td>
+                <td>${money.format(entry.revenue)}</td>
+                <td>
+                  <div class="analytics-bar-track">
+                    <div class="analytics-bar-fill" style="width: ${(entry.units / peakUnits) * 100}%"></div>
+                  </div>
+                </td>
+              </tr>`,
+        )
+        .join('')
+    : '<tr><td colspan="4">No sales data available yet.</td></tr>';
+
+  const recentRevenueMarkup = recentRevenue.length
+    ? recentRevenue
+        .map(
+          (order) => `
+              <tr>
+                <td>#${escapeHtml(order.id.slice(-6).toUpperCase())}</td>
+                <td>${escapeHtml(order.customerName)}</td>
+                <td>${money.format(order.total)}</td>
+                <td><span class="status-pill ${statusTone(order.status)}">${statusLabel(order.status)}</span></td>
+                <td>${formatDate(order.createdAt)}</td>
+              </tr>`,
+        )
+        .join('')
+    : '<tr><td colspan="5">No orders available yet.</td></tr>';
+
+  return `
+    <h1 class="section-title">Analytics</h1>
+
+    <section class="metrics">
+      <article class="metric-card"><p class="label">Total Revenue</p><p class="value">${money.format(totalRevenue)}</p></article>
+      <article class="metric-card"><p class="label">Paid Revenue</p><p class="value">${money.format(paidRevenue)}</p></article>
+      <article class="metric-card"><p class="label">Average Order Value</p><p class="value">${money.format(averageOrderValue)}</p></article>
+      <article class="metric-card"><p class="label">Order Conversion</p><p class="value">${conversionRate}%</p></article>
+    </section>
+
+    <section class="panel">
+      <h2 class="panel-title">Top Selling Products</h2>
+      <p class="admin-helper">Track your best performing shirts by units sold and revenue contribution.</p>
+      <div class="panel-scroll">
+        <table class="table analytics-table">
+          <thead>
+            <tr><th>Product</th><th>Units Sold</th><th>Revenue</th><th>Performance</th></tr>
+          </thead>
+          <tbody>
+            ${topProductsMarkup}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 class="panel-title">Recent Revenue Activity</h2>
+      <p class="admin-helper">Latest orders and payment status so you can monitor daily cashflow at a glance.</p>
+      <div class="panel-scroll">
+        <table class="table analytics-table">
+          <thead>
+            <tr><th>Order</th><th>Customer</th><th>Total</th><th>Status</th><th>Date</th></tr>
+          </thead>
+          <tbody>
+            ${recentRevenueMarkup}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  `;
+};
+
 const renderSettingsManager = async () => {
   const settings = await adminRepository.getSettings();
   const users = await adminRepository.listUsers();
@@ -462,6 +579,10 @@ const renderSection = async (pathname: string) => {
 
   if (pathname === '/admin-settings.html') {
     return renderSettingsManager();
+  }
+
+  if (pathname === '/admin-analytics.html') {
+    return renderAnalyticsManager();
   }
 
   const heading = pageTitleMap[pathname] ?? 'Admin';

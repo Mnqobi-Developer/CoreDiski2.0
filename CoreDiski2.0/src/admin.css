@@ -470,3 +470,22 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+.analytics-table {
+  min-width: 760px;
+}
+
+.analytics-bar-track {
+  width: 100%;
+  min-width: 160px;
+  height: 10px;
+  border-radius: 999px;
+  background: #e8e2d4;
+  overflow: hidden;
+}
+
+.analytics-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #1f4e44, #3f7d6f);
+}
