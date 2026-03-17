@@ -265,3 +265,31 @@ body {
   }
 }
 
+
+select.control {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 2.2rem;
+  background-color: #fbfaf5;
+  color: #1f463d;
+  border: 1px solid #ccc4b7;
+  background-image:
+    linear-gradient(45deg, transparent 50%, #1f4e44 50%),
+    linear-gradient(135deg, #1f4e44 50%, transparent 50%);
+  background-position:
+    calc(100% - 16px) calc(50% - 3px),
+    calc(100% - 11px) calc(50% - 3px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+
+select.control:focus {
+  outline: 2px solid rgba(31, 78, 68, 0.25);
+  border-color: #1f4e44;
+}
+
+select.control option {
+  background: #fbfaf5;
+  color: #1f463d;
+}
