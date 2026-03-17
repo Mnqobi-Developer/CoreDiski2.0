@@ -40,6 +40,8 @@ const hydrateSeed = (): Shirt[] =>
     id: randomId(),
   }));
 
+
+
 const readJsonArray = <T>(key: string): T[] => {
   const raw = localStorage.getItem(key);
 
@@ -137,6 +139,56 @@ const emailService = {
 
 
 
+const emailService = {
+  async sendVerificationEmail(fullName: string, email: string, token: string): Promise<OutgoingEmail> {
+    const verificationUrl = buildVerificationUrl(token);
+    const message: OutgoingEmail = {
+      id: randomId(),
+      to: email,
+      subject: 'Verify your Core Diski account',
+      body: `Hi ${fullName}, verify your account: ${verificationUrl}`,
+      sentAt: new Date().toISOString(),
+    };
+
+    const outbox = readJsonArray<OutgoingEmail>(EMAIL_OUTBOX_KEY);
+    localStorage.setItem(EMAIL_OUTBOX_KEY, JSON.stringify([message, ...outbox]));
+    return message;
+  },
+};
+
+
+const toShirt = (row: {
+  id: string;
+  club_or_nation: string;
+  title: string;
+  season: string;
+  variant: string;
+  price: number;
+  image_url: string;
+  tags: string[] | null;
+  featured: boolean | null;
+}): Shirt => ({
+  id: row.id,
+  clubOrNation: row.club_or_nation,
+  title: row.title,
+  season: row.season,
+  variant: row.variant,
+  price: Number(row.price),
+  imageUrl: row.image_url,
+  tags: row.tags ?? [],
+  featured: row.featured ?? false,
+});
+
+const toShirtInsert = (input: CreateShirtInput) => ({
+  club_or_nation: input.clubOrNation,
+  title: input.title,
+  season: input.season,
+  variant: input.variant,
+  price: input.price,
+  image_url: input.imageUrl,
+  tags: input.tags,
+  featured: input.featured ?? false,
+});
 
 const toShirt = (row: {
   id: string;
@@ -660,6 +712,30 @@ const sanitizeUser = (user: UserAccount): AdminUserRecord => {
 export const adminRepository = {
   async listUsers(): Promise<AdminUserRecord[]> {
     return readUsers().map(sanitizeUser);
+  },
+
+  
+
+
+  async listOrders(): Promise<Order[]> {
+    return readJsonArray<Order>(ORDERS_KEY);
+  },
+
+  async updateOrderStatus(orderId: string, status: Order['status']): Promise<Order | null> {
+    const orders = readJsonArray<Order>(ORDERS_KEY);
+    const target = orders.find((order) => order.id === orderId);
+
+    if (!target) {
+      return null;
+    }
+
+    const updated: Order = {
+      ...target,
+      status,
+    };
+
+    writeOrders(orders.map((order) => (order.id === orderId ? updated : order)));
+    return updated;
   },
 
   async updateUserRole(userId: string, isAdmin: boolean): Promise<AdminUserRecord | null> {
